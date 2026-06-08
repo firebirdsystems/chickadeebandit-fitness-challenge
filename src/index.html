@@ -1,0 +1,950 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <base href="/run/family-fitness-challenge/" />
+  <title>Family Fitness Challenge</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      font-family: var(--hub-font, system-ui, sans-serif);
+      font-size: var(--hub-font-size, 15px);
+      background: var(--hub-bg, #f9fafb);
+      color: var(--hub-text, #111827);
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+    }
+
+    .app-header { display: flex; align-items: center; gap: 10px; padding: 16px 20px 0; }
+    .back-btn {
+      background: none; border: none; font-size: 1.1rem; cursor: pointer;
+      color: var(--hub-primary, #6366f1); padding: 0; font-family: inherit; display: none;
+    }
+    .back-btn.visible { display: inline-flex; align-items: center; gap: 4px; }
+    .back-btn span { font-size: 0.9rem; }
+    .app-title { font-size: 1.25rem; font-weight: 700; flex: 1; }
+
+    .new-btn {
+      background: var(--hub-primary, #6366f1); color: var(--hub-primary-fg, #fff);
+      border: none; border-radius: var(--hub-radius, 6px); padding: 8px 14px;
+      font-size: 0.85rem; font-weight: 600; font-family: inherit; cursor: pointer;
+    }
+    .new-btn:hover { background: var(--hub-primary-hover, #4f46e5); }
+
+    .view { display: none; padding: 20px; flex: 1; }
+    .view.active { display: block; }
+
+    .section-label {
+      font-size: 0.8rem; font-weight: 600; color: var(--hub-text-muted, #6b7280);
+      text-transform: uppercase; letter-spacing: .05em; margin: 20px 0 10px;
+    }
+    .section-label:first-child { margin-top: 0; }
+
+    .card {
+      background: var(--hub-surface, #fff); border: 1px solid var(--hub-border, #e5e7eb);
+      border-radius: var(--hub-radius, 8px); padding: 20px; margin-bottom: 16px;
+    }
+    .card-title {
+      font-size: 0.8rem; font-weight: 600; color: var(--hub-text-muted, #6b7280);
+      text-transform: uppercase; letter-spacing: .05em; margin-bottom: 14px;
+    }
+
+    /* ── Challenge cards ── */
+    .challenge-card {
+      background: var(--hub-surface, #fff); border: 1px solid var(--hub-border, #e5e7eb);
+      border-radius: var(--hub-radius, 8px); padding: 16px; margin-bottom: 10px;
+      cursor: pointer; transition: border-color .15s, box-shadow .15s;
+    }
+    .challenge-card:hover { border-color: var(--hub-primary, #6366f1); box-shadow: 0 2px 8px rgba(99,102,241,.08); }
+    .challenge-card-top { display: flex; align-items: center; gap: 10px; margin-bottom: 6px; }
+    .challenge-card-name { font-weight: 700; font-size: 1rem; flex: 1; }
+    .challenge-card-meta { font-size: 0.8rem; color: var(--hub-text-muted, #6b7280); }
+    .badge-pill {
+      font-size: 0.7rem; font-weight: 600; padding: 3px 9px; border-radius: 99px;
+      text-transform: uppercase; letter-spacing: .03em;
+    }
+    .badge-pill.active { background: #ecfdf5; color: #059669; }
+    .badge-pill.upcoming { background: #eef2ff; color: #4f46e5; }
+    .badge-pill.completed { background: #f3f4f6; color: #6b7280; }
+
+    .progress-bar { height: 6px; border-radius: 99px; background: var(--hub-bg, #f3f4f6); overflow: hidden; margin-top: 10px; }
+    .progress-bar-fill { height: 100%; background: var(--hub-primary, #6366f1); border-radius: 99px; transition: width .2s; }
+
+    /* ── Member avatar ── */
+    .member-avatar {
+      width: 32px; height: 32px; border-radius: 50%; display: flex; align-items: center;
+      justify-content: center; font-size: 0.8rem; font-weight: 700; color: #fff; flex-shrink: 0;
+    }
+    .member-avatar.sm { width: 24px; height: 24px; font-size: 0.7rem; }
+    .team-avatar {
+      width: 32px; height: 32px; border-radius: 8px; display: flex; align-items: center;
+      justify-content: center; font-size: 1rem; color: #fff; flex-shrink: 0;
+    }
+
+    /* ── Standings rows ── */
+    .lb-row { display: flex; align-items: center; gap: 10px; padding: 10px 0; border-bottom: 1px solid var(--hub-border, #e5e7eb); }
+    .lb-row:last-child { border-bottom: none; }
+    .lb-rank { font-size: 1.2rem; width: 28px; text-align: center; flex-shrink: 0; }
+    .lb-name { flex: 1; font-weight: 600; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    .lb-sub { font-size: 0.75rem; color: var(--hub-text-muted, #6b7280); font-weight: 400; }
+    .lb-total { font-weight: 700; font-size: 1rem; color: var(--hub-primary, #6366f1); white-space: nowrap; }
+
+    /* ── Stats grid ── */
+    .stats-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(110px, 1fr)); gap: 10px; }
+    .stat-tile { background: var(--hub-bg, #f9fafb); border: 1px solid var(--hub-border, #e5e7eb); border-radius: var(--hub-radius, 8px); padding: 12px 14px; text-align: center; }
+    .stat-tile-value { font-size: 1.3rem; font-weight: 700; color: var(--hub-primary, #6366f1); }
+    .stat-tile-label { font-size: 0.7rem; color: var(--hub-text-muted, #6b7280); text-transform: uppercase; letter-spacing: .04em; margin-top: 2px; }
+
+    /* ── Badges ── */
+    .badges-grid { display: flex; flex-wrap: wrap; gap: 8px; }
+    .badge-chip {
+      display: flex; align-items: center; gap: 6px; padding: 6px 12px;
+      background: var(--hub-bg, #f9fafb); border: 1px solid var(--hub-border, #e5e7eb);
+      border-radius: 99px; font-size: 0.8rem; font-weight: 600;
+    }
+    .badge-chip .icon { font-size: 1rem; }
+
+    /* ── Activity feed ── */
+    .feed-row { display: flex; align-items: center; gap: 10px; padding: 8px 0; border-bottom: 1px solid var(--hub-border, #e5e7eb); font-size: 0.85rem; }
+    .feed-row:last-child { border-bottom: none; }
+    .feed-main { flex: 1; min-width: 0; }
+    .feed-name { font-weight: 600; }
+    .feed-note { color: var(--hub-text-muted, #6b7280); font-size: 0.8rem; }
+    .feed-amount { font-weight: 700; white-space: nowrap; }
+    .feed-date { font-size: 0.75rem; color: var(--hub-text-muted, #6b7280); white-space: nowrap; }
+
+    /* ── Forms / modal ── */
+    .form-group { margin-bottom: 16px; }
+    .form-group label { display: block; font-weight: 500; margin-bottom: 6px; font-size: 0.9rem; }
+    .form-group input, .form-group select, .form-group textarea {
+      width: 100%; padding: 8px 10px; border: 1px solid var(--hub-border, #e5e7eb);
+      border-radius: var(--hub-radius, 6px); background: var(--hub-bg, #f9fafb);
+      color: var(--hub-text, #111827); font-size: inherit; font-family: inherit;
+    }
+    .form-group textarea { resize: vertical; min-height: 50px; }
+    .form-row { display: flex; gap: 10px; }
+    .form-row .form-group { flex: 1; }
+    .form-hint { font-size: 0.75rem; color: var(--hub-text-muted, #6b7280); margin-top: 4px; }
+
+    .preset-row { display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 10px; }
+    .preset-chip {
+      padding: 6px 12px; border: 1.5px solid var(--hub-border, #e5e7eb); border-radius: 99px;
+      cursor: pointer; font-size: 0.8rem; font-family: inherit; background: var(--hub-surface, #fff);
+      transition: all .15s;
+    }
+    .preset-chip.selected { border-color: var(--hub-primary, #6366f1); background: #eef2ff; color: #4f46e5; }
+
+    .mode-toggle { display: flex; gap: 8px; }
+    .mode-btn {
+      flex: 1; padding: 10px; border: 2px solid var(--hub-border, #e5e7eb); border-radius: var(--hub-radius, 8px);
+      background: var(--hub-surface, #fff); font-family: inherit; font-size: 0.9rem; font-weight: 600;
+      cursor: pointer; text-align: center; transition: all .15s;
+    }
+    .mode-btn.selected { border-color: var(--hub-primary, #6366f1); background: #eef2ff; color: #4f46e5; }
+
+    .member-chips { display: flex; flex-wrap: wrap; gap: 6px; }
+    .member-chip {
+      display: flex; align-items: center; gap: 6px; padding: 6px 10px;
+      border: 1.5px solid var(--hub-border, #e5e7eb); border-radius: 99px; cursor: pointer;
+      font-size: 0.85rem; transition: all .15s; user-select: none; background: var(--hub-surface, #fff);
+    }
+    .member-chip.selected { border-color: var(--hub-primary, #6366f1); background: #eef2ff; }
+
+    .team-block { border: 1px solid var(--hub-border, #e5e7eb); border-radius: var(--hub-radius, 8px); padding: 12px; margin-bottom: 10px; }
+    .team-block-header { display: flex; align-items: center; gap: 8px; margin-bottom: 10px; }
+    .team-block-header input { flex: 1; }
+    .team-remove-btn { background: none; border: none; color: var(--hub-text-muted, #9ca3af); cursor: pointer; font-size: 1.1rem; line-height: 1; padding: 4px; }
+    .team-remove-btn:hover { color: #ef4444; }
+    .add-team-btn {
+      width: 100%; padding: 10px; border: 2px dashed var(--hub-border, #e5e7eb); border-radius: var(--hub-radius, 8px);
+      background: none; cursor: pointer; color: var(--hub-text-muted, #6b7280); font-family: inherit; font-size: 0.85rem;
+    }
+    .add-team-btn:hover { border-color: var(--hub-primary, #6366f1); color: var(--hub-primary, #6366f1); }
+
+    .btn-primary {
+      background: var(--hub-primary, #6366f1); color: var(--hub-primary-fg, #fff); border: none;
+      border-radius: var(--hub-radius, 6px); padding: 10px 20px; font-size: 1rem; font-weight: 600;
+      font-family: inherit; cursor: pointer; width: 100%; transition: background .15s;
+    }
+    .btn-primary:hover:not(:disabled) { background: var(--hub-primary-hover, #4f46e5); }
+    .btn-primary:disabled { opacity: .6; cursor: not-allowed; }
+    .btn-secondary {
+      background: var(--hub-surface, #fff); color: var(--hub-text, #111827); border: 1px solid var(--hub-border, #e5e7eb);
+      border-radius: var(--hub-radius, 6px); padding: 8px 16px; font-size: 0.9rem; font-family: inherit;
+      cursor: pointer; transition: background .15s;
+    }
+    .btn-secondary:hover { background: var(--hub-bg, #f9fafb); }
+
+    .modal-backdrop { display: none; position: fixed; inset: 0; background: rgba(0,0,0,.35); z-index: 100; align-items: center; justify-content: center; padding: 20px; overflow-y: auto; }
+    .modal-backdrop.open { display: flex; }
+    .modal { background: var(--hub-surface, #fff); border-radius: var(--hub-radius, 10px); padding: 24px; width: 100%; max-width: 440px; box-shadow: 0 20px 60px rgba(0,0,0,.2); margin: auto; }
+    .modal h2 { font-size: 1.1rem; font-weight: 700; margin-bottom: 18px; }
+    .modal-actions { display: flex; gap: 8px; margin-top: 20px; }
+    .modal-actions .btn-secondary { flex: 0 0 auto; }
+    .modal-actions .btn-primary { flex: 1; }
+
+    .empty-state { text-align: center; padding: 40px 20px; color: var(--hub-text-muted, #6b7280); }
+    .empty-state .empty-icon { font-size: 2.5rem; margin-bottom: 10px; }
+    .empty-state p { font-size: 0.9rem; }
+
+    .toast {
+      position: fixed; bottom: 24px; left: 50%; transform: translateX(-50%);
+      background: #111827; color: #fff; padding: 10px 20px; border-radius: 99px;
+      font-size: 0.9rem; font-weight: 500; opacity: 0; transition: opacity .2s; pointer-events: none; z-index: 200;
+    }
+    .toast.visible { opacity: 1; }
+  </style>
+</head>
+<body>
+
+<div class="app-header">
+  <button class="back-btn" id="back-btn" onclick="goToList()">← <span>Challenges</span></button>
+  <h1 class="app-title" id="app-title">🏃 Fitness Challenges</h1>
+  <button class="new-btn" id="new-challenge-btn" onclick="openNewChallenge()">+ New Challenge</button>
+</div>
+
+<!-- ── List view ── -->
+<div id="view-list" class="view active">
+  <div id="list-content"></div>
+</div>
+
+<!-- ── Challenge detail view ── -->
+<div id="view-detail" class="view">
+  <div class="card" id="detail-header-card"></div>
+
+  <div class="card">
+    <div class="card-title" id="standings-title">Leaderboard</div>
+    <div id="standings-list"></div>
+  </div>
+
+  <div class="card" id="your-stats-card" style="display:none">
+    <div class="card-title">Your Progress</div>
+    <div class="stats-grid" id="your-stats-grid"></div>
+    <div style="margin-top:14px">
+      <button class="btn-primary" onclick="openLogEntry()">+ Log Activity</button>
+    </div>
+  </div>
+
+  <div class="card" id="badges-card" style="display:none">
+    <div class="card-title">Badges</div>
+    <div class="badges-grid" id="badges-grid"></div>
+  </div>
+
+  <div class="card">
+    <div class="card-title">Recent Activity</div>
+    <div id="activity-feed"></div>
+  </div>
+</div>
+
+<!-- ── New Challenge modal ── -->
+<div class="modal-backdrop" id="modal-new-challenge">
+  <div class="modal">
+    <h2>New Challenge</h2>
+    <div class="form-group">
+      <label for="nc-name">Challenge name</label>
+      <input type="text" id="nc-name" placeholder="e.g. October Step Challenge" />
+    </div>
+
+    <div class="form-group">
+      <label>What are you tracking?</label>
+      <div class="preset-row" id="nc-presets"></div>
+      <div class="form-row">
+        <div class="form-group" style="margin-bottom:0">
+          <input type="text" id="nc-activity-label" placeholder="Activity (e.g. Miles Biked)" />
+        </div>
+        <div class="form-group" style="margin-bottom:0; max-width:120px">
+          <input type="text" id="nc-unit-label" placeholder="Unit (e.g. mi)" />
+        </div>
+      </div>
+      <div class="form-hint">Everyone in this challenge logs progress in the same unit, so the leaderboard stays comparable.</div>
+    </div>
+
+    <div class="form-row">
+      <div class="form-group">
+        <label for="nc-start">Start date</label>
+        <input type="date" id="nc-start" />
+      </div>
+      <div class="form-group">
+        <label for="nc-end">End date</label>
+        <input type="date" id="nc-end" />
+      </div>
+    </div>
+
+    <div class="form-group">
+      <label>Mode</label>
+      <div class="mode-toggle">
+        <button type="button" class="mode-btn selected" id="nc-mode-individual" onclick="setChallengeMode('individual')">Individual</button>
+        <button type="button" class="mode-btn" id="nc-mode-team" onclick="setChallengeMode('team')">Team</button>
+      </div>
+    </div>
+
+    <div class="form-group">
+      <label>Who's participating?</label>
+      <div class="member-chips" id="nc-participant-chips"></div>
+    </div>
+
+    <div class="form-group" id="nc-teams-section" style="display:none">
+      <label>Teams</label>
+      <div id="nc-teams-list"></div>
+      <button type="button" class="add-team-btn" onclick="addTeamBlock()">+ Add team</button>
+      <div class="form-hint">Tap a participant under each team to assign them — they'll move off any other team.</div>
+    </div>
+
+    <div class="modal-actions">
+      <button class="btn-secondary" onclick="closeModal()">Cancel</button>
+      <button class="btn-primary" id="nc-submit" onclick="submitNewChallenge()">Create Challenge</button>
+    </div>
+  </div>
+</div>
+
+<!-- ── Log Entry modal ── -->
+<div class="modal-backdrop" id="modal-log-entry">
+  <div class="modal">
+    <h2>Log Activity</h2>
+    <div class="form-row">
+      <div class="form-group">
+        <label for="le-date">Date</label>
+        <input type="date" id="le-date" />
+      </div>
+      <div class="form-group">
+        <label for="le-amount" id="le-amount-label">Amount</label>
+        <input type="number" id="le-amount" min="0" step="any" placeholder="0" />
+      </div>
+    </div>
+    <div class="form-group">
+      <label for="le-note">Note (optional)</label>
+      <textarea id="le-note" placeholder="e.g. morning run with the dog"></textarea>
+    </div>
+    <div class="modal-actions">
+      <button class="btn-secondary" onclick="closeModal()">Cancel</button>
+      <button class="btn-primary" id="le-submit" onclick="submitLogEntry()">Save</button>
+    </div>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script type="module">
+import { esc, memberColor, initial } from "/hub-sdk.js";
+import {
+  UNIT_PRESETS, BADGES, toISODate, daysBetween, challengeStatus, rankLabel,
+  computeStandings, currentStreak, computeBadges,
+} from "./logic.js";
+
+const CONTEXT = window.__CONTEXT_URL ?? "";
+const DB      = window.__DB_URL      ?? "";
+const ME      = window.__CURRENT_MEMBER ?? null;
+const APP_ID  = window.__APP_ID ?? "family-fitness-challenge";
+
+// ── State ──────────────────────────────────────────────────────────────────────
+let members = [];
+let memberMap = new Map();
+let challenges = [];          // list of { ...row }
+let modalEl = null;
+
+// Detail-view state for the currently open challenge
+let detail = null;            // { challenge, teams, participants, entries }
+
+// New-challenge form state
+let newChallenge = { mode: "individual", presetIdx: null, participantIds: [], teams: [] };
+
+// ── DB helper ──────────────────────────────────────────────────────────────────
+async function db(sql, params = []) {
+  if (!DB) return { rows: [] };
+  const res = await fetch(DB, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ sql, params }),
+  });
+  return res.json();
+}
+
+// ── Init ───────────────────────────────────────────────────────────────────────
+async function loadMembers() {
+  if (!CONTEXT) {
+    members = [
+      { id: "demo-1", name: "Alex", role: "adult" },
+      { id: "demo-2", name: "Jordan", role: "child" },
+      { id: "demo-3", name: "Sam", role: "adult" },
+      { id: "demo-4", name: "Taylor", role: "child" },
+    ];
+  } else {
+    try {
+      const res = await fetch(`${CONTEXT}?keys=family.members`);
+      members = ((await res.json())["family.members"]) ?? [];
+    } catch { members = []; }
+  }
+  memberMap = new Map(members.map(m => [m.id, m]));
+}
+
+async function loadChallenges() {
+  const { rows } = await db(`SELECT * FROM ffc_challenges ORDER BY start_date DESC`);
+  challenges = rows;
+}
+
+(async () => {
+  await Promise.all([loadMembers(), loadChallenges()]);
+  renderList();
+  handleDeepLink();
+})();
+
+function handleDeepLink() {
+  const params = new URLSearchParams(window.location.search);
+  const challengeId = params.get("challengeId");
+  if (challengeId) openChallenge(challengeId);
+}
+
+// ── Toast ──────────────────────────────────────────────────────────────────────
+let toastTimer = null;
+function toast(msg) {
+  const el = document.getElementById("toast");
+  el.textContent = msg;
+  el.classList.add("visible");
+  clearTimeout(toastTimer);
+  toastTimer = setTimeout(() => el.classList.remove("visible"), 2200);
+}
+
+// ── Modal helpers ──────────────────────────────────────────────────────────────
+window.closeModal = function() {
+  document.querySelectorAll(".modal-backdrop").forEach(m => m.classList.remove("open"));
+  modalEl = null;
+};
+function openModalEl(id) {
+  closeModal();
+  modalEl = document.getElementById(id);
+  modalEl.classList.add("open");
+  modalEl.addEventListener("click", e => { if (e.target === modalEl) closeModal(); }, { once: true });
+}
+
+// ── Navigation ─────────────────────────────────────────────────────────────────
+window.goToList = function() {
+  detail = null;
+  document.getElementById("view-list").classList.add("active");
+  document.getElementById("view-detail").classList.remove("active");
+  document.getElementById("back-btn").classList.remove("visible");
+  document.getElementById("new-challenge-btn").style.display = "";
+  document.getElementById("app-title").textContent = "🏃 Fitness Challenges";
+  renderList();
+};
+
+window.openChallenge = async function(challengeId) {
+  const challenge = challenges.find(c => c.id === challengeId);
+  if (!challenge) return;
+
+  const [teamsRes, partsRes, entriesRes] = await Promise.all([
+    db(`SELECT * FROM ffc_teams WHERE challenge_id = ?`, [challengeId]),
+    db(`SELECT * FROM ffc_participants WHERE challenge_id = ?`, [challengeId]),
+    db(`SELECT * FROM ffc_entries WHERE challenge_id = ? ORDER BY entry_date DESC, created_at DESC`, [challengeId]),
+  ]);
+  detail = {
+    challenge,
+    teams: teamsRes.rows,
+    participants: partsRes.rows,
+    entries: entriesRes.rows,
+  };
+
+  document.getElementById("view-list").classList.remove("active");
+  document.getElementById("view-detail").classList.add("active");
+  document.getElementById("back-btn").classList.add("visible");
+  document.getElementById("new-challenge-btn").style.display = "none";
+  document.getElementById("app-title").textContent = `${esc(challenge.activity_label)} · ${esc(challenge.name)}`;
+  renderDetail();
+};
+
+// ── List view ──────────────────────────────────────────────────────────────────
+function renderList() {
+  const today = toISODate();
+  const groups = { active: [], upcoming: [], completed: [] };
+  for (const c of challenges) groups[challengeStatus(c, today)].push(c);
+
+  const sections = [
+    ["active", "Active"],
+    ["upcoming", "Upcoming"],
+    ["completed", "Past"],
+  ];
+
+  const container = document.getElementById("list-content");
+
+  if (!challenges.length) {
+    container.innerHTML = `
+      <div class="empty-state">
+        <div class="empty-icon">🏃</div>
+        <p>No challenges yet — create one to start tracking activity together!</p>
+      </div>`;
+    return;
+  }
+
+  container.innerHTML = sections.map(([key, label]) => {
+    const list = groups[key];
+    if (!list.length) return "";
+    return `
+      <div class="section-label">${label}</div>
+      ${list.map(c => challengeCardHtml(c, key, today)).join("")}
+    `;
+  }).join("");
+}
+
+function challengeCardHtml(c, status, today) {
+  const total = daysBetween(c.start_date, c.end_date);
+  const elapsed = Math.min(Math.max(daysBetween(c.start_date, today), 0), total);
+  const pct = status === "completed" ? 100 : status === "upcoming" ? 0 : Math.round((elapsed / total) * 100);
+  const dateRange = `${fmtDate(c.start_date)} – ${fmtDate(c.end_date)}`;
+  const modeLabel = c.mode === "team" ? "Team challenge" : "Individual challenge";
+
+  return `
+    <div class="challenge-card" onclick="openChallenge('${esc(c.id)}')">
+      <div class="challenge-card-top">
+        <div class="challenge-card-name">${esc(c.name)}</div>
+        <span class="badge-pill ${status}">${status}</span>
+      </div>
+      <div class="challenge-card-meta">${esc(c.activity_label)} (${esc(c.unit_label)}) · ${modeLabel} · ${dateRange}</div>
+      ${status !== "upcoming" ? `
+        <div class="progress-bar"><div class="progress-bar-fill" style="width:${pct}%"></div></div>
+        <div class="challenge-card-meta" style="margin-top:6px">
+          ${status === "completed" ? "Final results" : `Day ${elapsed} of ${total}`}
+        </div>` : ""}
+    </div>
+  `;
+}
+
+function fmtDate(iso) {
+  const [y, m, d] = iso.split("-").map(Number);
+  return new Date(y, m - 1, d).toLocaleDateString("en-US", { month: "short", day: "numeric" });
+}
+
+// ── Detail view ────────────────────────────────────────────────────────────────
+function renderDetail() {
+  const { challenge, teams, participants, entries } = detail;
+  const today = toISODate();
+  const status = challengeStatus(challenge, today);
+  const standings = computeStandings(entries, participants, teams, challenge.mode);
+
+  renderDetailHeader(challenge, status, today);
+  renderStandings(standings, challenge);
+  renderYourStats(challenge, participants, entries, standings, status, today);
+  renderBadges(challenge, participants, entries, standings, status, today);
+  renderActivityFeed(entries);
+}
+
+function renderDetailHeader(challenge, status, today) {
+  const total = daysBetween(challenge.start_date, challenge.end_date);
+  const elapsed = Math.min(Math.max(daysBetween(challenge.start_date, today), 0), total);
+  const dateRange = `${fmtDate(challenge.start_date)} – ${fmtDate(challenge.end_date)}`;
+  const modeLabel = challenge.mode === "team" ? "Team challenge" : "Individual challenge";
+  const statusLine = status === "upcoming"
+    ? `Starts ${fmtDate(challenge.start_date)}`
+    : status === "completed"
+      ? `Ended ${fmtDate(challenge.end_date)}`
+      : `Day ${elapsed} of ${total} · ${total - elapsed} day${total - elapsed === 1 ? "" : "s"} left`;
+
+  document.getElementById("detail-header-card").innerHTML = `
+    <div style="display:flex; align-items:center; gap:10px; margin-bottom:6px;">
+      <div style="font-weight:700; font-size:1.1rem; flex:1;">${esc(challenge.name)}</div>
+      <span class="badge-pill ${status}">${status}</span>
+    </div>
+    <div class="challenge-card-meta">${esc(challenge.activity_label)} tracked in ${esc(challenge.unit_label)} · ${modeLabel} · ${dateRange}</div>
+    <div class="challenge-card-meta" style="margin-top:6px; font-weight:600; color:var(--hub-text,#111827);">${statusLine}</div>
+  `;
+}
+
+function renderStandings(standings, challenge) {
+  document.getElementById("standings-title").textContent =
+    challenge.mode === "team" ? "Team Leaderboard" : "Leaderboard";
+
+  const list = document.getElementById("standings-list");
+  if (!standings.length) {
+    list.innerHTML = `<div class="empty-state"><div class="empty-icon">🏁</div><p>No participants yet</p></div>`;
+    return;
+  }
+
+  list.innerHTML = standings.map((row, i) => {
+    if (row.kind === "team") {
+      const team = detail.teams.find(t => t.id === row.id);
+      const memberNames = row.memberIds.map(id => memberMap.get(id)?.name ?? "?").join(", ");
+      return `
+        <div class="lb-row">
+          <div class="lb-rank">${rankLabel(i)}</div>
+          <span class="team-avatar" style="background:${esc(team?.color ?? "#6366f1")}">🏅</span>
+          <div class="lb-name">
+            ${esc(team?.name ?? "Team")}
+            <div class="lb-sub">${esc(memberNames)}</div>
+          </div>
+          <div class="lb-total">${formatAmount(row.total)} ${esc(challenge.unit_label)}</div>
+        </div>
+      `;
+    }
+    const member = memberMap.get(row.id);
+    const color = memberColor(row.id, members);
+    return `
+      <div class="lb-row">
+        <div class="lb-rank">${rankLabel(i)}</div>
+        <span class="member-avatar" style="background:${color}">${esc(initial(member?.name))}</span>
+        <div class="lb-name">${esc(member?.name ?? "Unknown")}</div>
+        <div class="lb-total">${formatAmount(row.total)} ${esc(challenge.unit_label)}</div>
+      </div>
+    `;
+  }).join("");
+}
+
+function renderYourStats(challenge, participants, entries, standings, status, today) {
+  const card = document.getElementById("your-stats-card");
+  const isParticipant = !!ME && participants.some(p => p.member_id === ME.id);
+  if (!ME || !isParticipant) { card.style.display = "none"; return; }
+
+  card.style.display = "";
+  const myEntries = entries.filter(e => e.member_id === ME.id);
+  const myTotal = myEntries.reduce((sum, e) => sum + e.amount, 0);
+  const streak = currentStreak(entries, ME.id, today);
+
+  let myRank = "—";
+  if (challenge.mode === "team") {
+    const myTeamId = participants.find(p => p.member_id === ME.id)?.team_id;
+    const idx = standings.findIndex(s => s.id === myTeamId);
+    if (idx !== -1) myRank = `#${idx + 1}`;
+  } else {
+    const idx = standings.findIndex(s => s.id === ME.id);
+    if (idx !== -1) myRank = `#${idx + 1}`;
+  }
+
+  document.getElementById("your-stats-grid").innerHTML = `
+    <div class="stat-tile">
+      <div class="stat-tile-value">${formatAmount(myTotal)}</div>
+      <div class="stat-tile-label">${esc(challenge.unit_label)} total</div>
+    </div>
+    <div class="stat-tile">
+      <div class="stat-tile-value">${myRank}</div>
+      <div class="stat-tile-label">${challenge.mode === "team" ? "team rank" : "your rank"}</div>
+    </div>
+    <div class="stat-tile">
+      <div class="stat-tile-value">${streak}🔥</div>
+      <div class="stat-tile-label">day streak</div>
+    </div>
+  `;
+
+  const logBtn = card.querySelector(".btn-primary");
+  if (logBtn) logBtn.style.display = status === "upcoming" ? "none" : "";
+}
+
+function renderBadges(challenge, participants, entries, standings, status, today) {
+  const card = document.getElementById("badges-card");
+  if (!ME || !participants.some(p => p.member_id === ME.id)) { card.style.display = "none"; return; }
+
+  const myEntries = entries.filter(e => e.member_id === ME.id);
+  const earned = computeBadges(ME, challenge, myEntries.length ? entries : [], standings, today);
+  if (!earned.length) { card.style.display = "none"; return; }
+
+  card.style.display = "";
+  document.getElementById("badges-grid").innerHTML = earned.map(id => {
+    const b = BADGES[id];
+    return `<div class="badge-chip" title="${esc(b.description)}"><span class="icon">${b.icon}</span>${esc(b.label)}</div>`;
+  }).join("");
+}
+
+function renderActivityFeed(entries) {
+  const feed = document.getElementById("activity-feed");
+  if (!entries.length) {
+    feed.innerHTML = `<div class="empty-state"><div class="empty-icon">📋</div><p>No activity logged yet</p></div>`;
+    return;
+  }
+  feed.innerHTML = entries.slice(0, 30).map(e => {
+    const member = memberMap.get(e.member_id);
+    const color = memberColor(e.member_id, members);
+    return `
+      <div class="feed-row">
+        <span class="member-avatar sm" style="background:${color}">${esc(initial(member?.name))}</span>
+        <div class="feed-main">
+          <span class="feed-name">${esc(member?.name ?? "Unknown")}</span>
+          ${e.note ? `<div class="feed-note">${esc(e.note)}</div>` : ""}
+        </div>
+        <div style="text-align:right">
+          <div class="feed-amount">${formatAmount(e.amount)} ${esc(detail.challenge.unit_label)}</div>
+          <div class="feed-date">${fmtDate(e.entry_date)}</div>
+        </div>
+      </div>
+    `;
+  }).join("");
+}
+
+function formatAmount(n) {
+  return Number(n).toLocaleString(undefined, { maximumFractionDigits: 2 });
+}
+
+// ── Log Activity ───────────────────────────────────────────────────────────────
+window.openLogEntry = function() {
+  if (!ME || !detail) return;
+  document.getElementById("le-date").value = toISODate();
+  document.getElementById("le-date").max = toISODate();
+  document.getElementById("le-amount").value = "";
+  document.getElementById("le-amount-label").textContent = `Amount (${detail.challenge.unit_label})`;
+  document.getElementById("le-note").value = "";
+  openModalEl("modal-log-entry");
+  setTimeout(() => document.getElementById("le-amount").focus(), 50);
+};
+
+window.submitLogEntry = async function() {
+  const date = document.getElementById("le-date").value;
+  const amountStr = document.getElementById("le-amount").value;
+  const note = document.getElementById("le-note").value.trim();
+  const amount = Number(amountStr);
+
+  if (!date) { document.getElementById("le-date").focus(); return; }
+  if (!amountStr || !Number.isFinite(amount) || amount < 0) { document.getElementById("le-amount").focus(); return; }
+
+  const btn = document.getElementById("le-submit");
+  btn.disabled = true;
+  btn.textContent = "Saving…";
+
+  try {
+    const { challenge } = detail;
+    const existing = detail.entries.find(e => e.member_id === ME.id && e.entry_date === date);
+    const now = new Date().toISOString();
+
+    if (existing) {
+      await db(`UPDATE ffc_entries SET amount = ?, note = ? WHERE household_id = current_setting('app.household_id', true)::uuid AND id = ?`,
+        [amount, note || null, existing.id]);
+      existing.amount = amount;
+      existing.note = note || null;
+    } else {
+      const id = crypto.randomUUID();
+      await db(
+        `INSERT INTO ffc_entries (household_id, id, challenge_id, member_id, entry_date, amount, note, created_at)
+         VALUES (current_setting('app.household_id', true)::uuid, ?, ?, ?, ?, ?, ?, ?)`,
+        [id, challenge.id, ME.id, date, amount, note || null, now]
+      );
+      detail.entries = [{ id, challenge_id: challenge.id, member_id: ME.id, entry_date: date, amount, note: note || null, created_at: now }, ...detail.entries]
+        .sort((a, b) => (b.entry_date + b.created_at).localeCompare(a.entry_date + a.created_at));
+    }
+
+    closeModal();
+    renderDetail();
+    toast(existing ? "Entry updated" : "Activity logged!");
+
+    Promise.all([
+      fetch("/api/activity", {
+        method: "POST", headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          type: "fitness_entry_logged", actor: ME.name,
+          description: `${ME.name} logged ${formatAmount(amount)} ${challenge.unit_label} in "${challenge.name}"`,
+          metadata: { deepLink: { appId: APP_ID, params: { challengeId: challenge.id } } },
+        }),
+      }).catch(() => {}),
+    ]).catch(() => {});
+  } catch (e) {
+    btn.disabled = false;
+    btn.textContent = "Save";
+    toast(`Error: ${e.message}`);
+  }
+};
+
+// ── New Challenge ──────────────────────────────────────────────────────────────
+window.openNewChallenge = function() {
+  newChallenge = { mode: "individual", presetIdx: null, participantIds: members.map(m => m.id), teams: [] };
+  document.getElementById("nc-name").value = "";
+  document.getElementById("nc-activity-label").value = "";
+  document.getElementById("nc-unit-label").value = "";
+  document.getElementById("nc-start").value = toISODate();
+  document.getElementById("nc-end").value = toISODate(new Date(Date.now() + 29 * 86400000));
+  renderPresets();
+  setChallengeMode("individual");
+  renderParticipantChips();
+  openModalEl("modal-new-challenge");
+};
+
+function renderPresets() {
+  document.getElementById("nc-presets").innerHTML = UNIT_PRESETS.map((p, i) => `
+    <button type="button" class="preset-chip${newChallenge.presetIdx === i ? " selected" : ""}" onclick="pickPreset(${i})">${esc(p.label)}</button>
+  `).join("");
+}
+window.pickPreset = function(i) {
+  newChallenge.presetIdx = i;
+  const preset = UNIT_PRESETS[i];
+  document.getElementById("nc-activity-label").value = preset.activityLabel;
+  document.getElementById("nc-unit-label").value = preset.unitLabel;
+  renderPresets();
+};
+
+window.setChallengeMode = function(mode) {
+  newChallenge.mode = mode;
+  document.getElementById("nc-mode-individual").classList.toggle("selected", mode === "individual");
+  document.getElementById("nc-mode-team").classList.toggle("selected", mode === "team");
+  document.getElementById("nc-teams-section").style.display = mode === "team" ? "" : "none";
+  if (mode === "team" && !newChallenge.teams.length) {
+    newChallenge.teams = [
+      { tempId: crypto.randomUUID(), name: "Team A", color: "#0284c7", memberIds: [] },
+      { tempId: crypto.randomUUID(), name: "Team B", color: "#db2777", memberIds: [] },
+    ];
+  }
+  renderTeamBlocks();
+};
+
+function renderParticipantChips() {
+  document.getElementById("nc-participant-chips").innerHTML = members.map(m => {
+    const selected = newChallenge.participantIds.includes(m.id);
+    const color = memberColor(m.id, members);
+    return `
+      <div class="member-chip${selected ? " selected" : ""}" onclick="toggleParticipant('${esc(m.id)}')">
+        <span class="member-avatar sm" style="background:${color}">${esc(initial(m.name))}</span>
+        ${esc(m.name)}
+      </div>
+    `;
+  }).join("");
+}
+window.toggleParticipant = function(memberId) {
+  const idx = newChallenge.participantIds.indexOf(memberId);
+  if (idx === -1) newChallenge.participantIds.push(memberId);
+  else {
+    newChallenge.participantIds.splice(idx, 1);
+    for (const team of newChallenge.teams) {
+      const ti = team.memberIds.indexOf(memberId);
+      if (ti !== -1) team.memberIds.splice(ti, 1);
+    }
+  }
+  renderParticipantChips();
+  if (newChallenge.mode === "team") renderTeamBlocks();
+};
+
+window.addTeamBlock = function() {
+  const colors = ["#0284c7","#db2777","#059669","#ea580c","#7c3aed","#65a30d"];
+  newChallenge.teams.push({
+    tempId: crypto.randomUUID(),
+    name: `Team ${String.fromCharCode(65 + newChallenge.teams.length)}`,
+    color: colors[newChallenge.teams.length % colors.length],
+    memberIds: [],
+  });
+  renderTeamBlocks();
+};
+window.removeTeamBlock = function(tempId) {
+  newChallenge.teams = newChallenge.teams.filter(t => t.tempId !== tempId);
+  renderTeamBlocks();
+};
+window.renameTeam = function(tempId, name) {
+  const team = newChallenge.teams.find(t => t.tempId === tempId);
+  if (team) team.name = name;
+};
+window.toggleTeamMember = function(tempId, memberId) {
+  // Remove from any other team first — a participant can only be on one team.
+  for (const team of newChallenge.teams) {
+    const idx = team.memberIds.indexOf(memberId);
+    if (idx !== -1 && team.tempId !== tempId) team.memberIds.splice(idx, 1);
+  }
+  const team = newChallenge.teams.find(t => t.tempId === tempId);
+  const idx = team.memberIds.indexOf(memberId);
+  if (idx === -1) team.memberIds.push(memberId);
+  else team.memberIds.splice(idx, 1);
+  renderTeamBlocks();
+};
+
+function renderTeamBlocks() {
+  const container = document.getElementById("nc-teams-list");
+  if (newChallenge.mode !== "team") { container.innerHTML = ""; return; }
+
+  container.innerHTML = newChallenge.teams.map(team => `
+    <div class="team-block">
+      <div class="team-block-header">
+        <span class="team-avatar" style="background:${team.color}">🏅</span>
+        <input type="text" value="${esc(team.name)}" oninput="renameTeam('${team.tempId}', this.value)" />
+        <button type="button" class="team-remove-btn" onclick="removeTeamBlock('${team.tempId}')" title="Remove team">✕</button>
+      </div>
+      <div class="member-chips">
+        ${newChallenge.participantIds.map(id => {
+          const m = memberMap.get(id);
+          if (!m) return "";
+          const selected = team.memberIds.includes(id);
+          const color = memberColor(id, members);
+          return `
+            <div class="member-chip${selected ? " selected" : ""}" onclick="toggleTeamMember('${team.tempId}', '${esc(id)}')">
+              <span class="member-avatar sm" style="background:${color}">${esc(initial(m.name))}</span>
+              ${esc(m.name)}
+            </div>
+          `;
+        }).join("")}
+      </div>
+    </div>
+  `).join("");
+}
+
+window.submitNewChallenge = async function() {
+  const name = document.getElementById("nc-name").value.trim();
+  const activityLabel = document.getElementById("nc-activity-label").value.trim();
+  const unitLabel = document.getElementById("nc-unit-label").value.trim();
+  const start = document.getElementById("nc-start").value;
+  const end = document.getElementById("nc-end").value;
+
+  if (!name) { document.getElementById("nc-name").focus(); return; }
+  if (!activityLabel || !unitLabel) { document.getElementById("nc-activity-label").focus(); return; }
+  if (!start || !end || end < start) { document.getElementById("nc-end").focus(); toast("End date must be on or after the start date"); return; }
+  if (!newChallenge.participantIds.length) { toast("Pick at least one participant"); return; }
+  if (newChallenge.mode === "team") {
+    const teamsWithMembers = newChallenge.teams.filter(t => t.memberIds.length && t.name.trim());
+    if (teamsWithMembers.length < 2) { toast("Add at least two teams with members"); return; }
+  }
+
+  const btn = document.getElementById("nc-submit");
+  btn.disabled = true;
+  btn.textContent = "Creating…";
+
+  try {
+    const challengeId = crypto.randomUUID();
+    const now = new Date().toISOString();
+
+    await db(
+      `INSERT INTO ffc_challenges (household_id, id, name, activity_label, unit_label, mode, start_date, end_date, created_by, created_at)
+       VALUES (current_setting('app.household_id', true)::uuid, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+      [challengeId, name, activityLabel, unitLabel, newChallenge.mode, start, end, ME?.name ?? "", now]
+    );
+
+    const teamIdByTempId = new Map();
+    if (newChallenge.mode === "team") {
+      for (const team of newChallenge.teams) {
+        if (!team.memberIds.length || !team.name.trim()) continue;
+        const teamId = crypto.randomUUID();
+        teamIdByTempId.set(team.tempId, teamId);
+        await db(
+          `INSERT INTO ffc_teams (household_id, id, challenge_id, name, color) VALUES (current_setting('app.household_id', true)::uuid, ?, ?, ?, ?)`,
+          [teamId, challengeId, team.name.trim(), team.color]
+        );
+      }
+    }
+
+    for (const memberId of newChallenge.participantIds) {
+      let teamId = null;
+      if (newChallenge.mode === "team") {
+        const team = newChallenge.teams.find(t => t.memberIds.includes(memberId) && teamIdByTempId.has(t.tempId));
+        teamId = team ? teamIdByTempId.get(team.tempId) : null;
+        if (!teamId) continue; // unassigned participants are skipped in team mode
+      }
+      await db(
+        `INSERT INTO ffc_participants (household_id, id, challenge_id, member_id, team_id, joined_at)
+         VALUES (current_setting('app.household_id', true)::uuid, ?, ?, ?, ?, ?)`,
+        [crypto.randomUUID(), challengeId, memberId, teamId, now]
+      );
+    }
+
+    challenges = [{ id: challengeId, name, activity_label: activityLabel, unit_label: unitLabel, mode: newChallenge.mode, start_date: start, end_date: end, created_by: ME?.name ?? "", created_at: now }, ...challenges];
+
+    closeModal();
+    renderList();
+    toast("Challenge created!");
+
+    Promise.all([
+      fetch("/api/activity", {
+        method: "POST", headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          type: "fitness_challenge_created", actor: ME?.name ?? "Someone",
+          description: `${ME?.name ?? "Someone"} started a new challenge: "${name}"`,
+          metadata: { deepLink: { appId: APP_ID, params: { challengeId } } },
+        }),
+      }).catch(() => {}),
+    ]).catch(() => {});
+  } catch (e) {
+    btn.disabled = false;
+    btn.textContent = "Create Challenge";
+    toast(`Error: ${e.message}`);
+  }
+};
+</script>
+</body>
+</html>

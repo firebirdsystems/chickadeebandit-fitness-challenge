@@ -1,0 +1,30 @@
+{
+  "id": "family-fitness-challenge",
+  "name": "Family Fitness Challenge",
+  "version": "1.0.0",
+  "description": "Run step, distance, or activity challenges with individual or team leaderboards, in-challenge streaks, and badges. Manual entry to start.",
+  "entrypoint": "index.html",
+  "runtime": "static",
+  "category": "family",
+  "tags": ["fitness", "health", "competition", "family", "challenge"],
+  "data_access": {
+    "reads": ["family.members"],
+    "writes": []
+  },
+  "permissions": {
+    "default_audience": "everyone",
+    "requires_approval": false
+  },
+  "storage": "db",
+  "nav": { "label": "Fitness" },
+  "widget": { "label": "Challenge", "size": "small" },
+  "resource_limits": {
+    "max_db_bytes": 52428800
+  },
+  "icon": "🏃",
+  "ai_access": {
+    "allowed": true,
+    "mode": "read",
+    "db_exports": ["active_challenges", "current_standings"]
+  }
+}

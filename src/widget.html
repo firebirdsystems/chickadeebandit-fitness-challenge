@@ -1,0 +1,146 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Fitness Challenge Widget</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      font-family: var(--hub-font, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif);
+      font-size: 13px;
+      background: #fff;
+      color: #111827;
+      height: 100vh;
+      overflow: hidden;
+      display: flex;
+      flex-direction: column;
+    }
+
+    .header { display: flex; align-items: center; gap: 6px; padding: 10px 14px 8px; border-bottom: 1px solid #e5e7eb; flex-shrink: 0; }
+    .header-icon { font-size: 14px; }
+    .header-title { font-size: 12px; font-weight: 600; color: #374151; flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    .header-link { font-size: 11px; color: #6366f1; text-decoration: none; }
+    .header-link:hover { text-decoration: underline; }
+
+    .content { flex: 1; padding: 10px 14px 12px; display: flex; flex-direction: column; gap: 6px; overflow: hidden; }
+
+    .empty { flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 6px; color: #9ca3af; text-align: center; }
+    .empty .icon { font-size: 1.8rem; }
+    .empty p { font-size: 12px; }
+
+    .progress-line { font-size: 11px; color: #6b7280; margin-bottom: 2px; }
+    .progress-bar { height: 5px; border-radius: 99px; background: #f3f4f6; overflow: hidden; margin-bottom: 8px; }
+    .progress-bar-fill { height: 100%; background: #6366f1; border-radius: 99px; }
+
+    .rank-row { display: flex; align-items: center; gap: 8px; padding: 5px 0; border-bottom: 1px solid #f3f4f6; }
+    .rank-row:last-child { border-bottom: none; }
+    .rank-row.me { background: #eef2ff; margin: 0 -14px; padding: 6px 14px; border-radius: 6px; border-bottom: none; }
+
+    .rank-label { font-size: 1rem; width: 22px; text-align: center; flex-shrink: 0; }
+    .member-avatar { width: 22px; height: 22px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 10px; font-weight: 700; color: #fff; flex-shrink: 0; }
+    .row-name { flex: 1; font-weight: 500; font-size: 12px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    .row-total { font-size: 12px; font-weight: 600; color: #6366f1; white-space: nowrap; }
+  </style>
+</head>
+<body>
+
+<div class="header">
+  <span class="header-icon">🏃</span>
+  <span class="header-title" id="header-title">Fitness Challenge</span>
+  <a class="header-link" href="/run/family-fitness-challenge">Open</a>
+</div>
+
+<div class="content" id="content">
+  <div class="empty">
+    <span class="icon">🏃</span>
+    <p>No active challenges</p>
+  </div>
+</div>
+
+<script type="module">
+import { esc, memberColor, initial } from "/hub-sdk.js";
+import { toISODate, daysBetween, computeStandings, rankLabel } from "./logic.js";
+
+const CONTEXT = window.__CONTEXT_URL ?? "";
+const DB      = window.__DB_URL      ?? "";
+const ME      = window.__CURRENT_MEMBER ?? null;
+
+async function db(sql, params = []) {
+  if (!DB) return { rows: [] };
+  const res = await fetch(DB, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ sql, params }),
+  });
+  return res.json();
+}
+
+async function init() {
+  let members = [];
+  if (CONTEXT) {
+    try {
+      const res = await fetch(`${CONTEXT}?keys=family.members`);
+      members = ((await res.json())["family.members"]) ?? [];
+    } catch {}
+  }
+  const memberMap = new Map(members.map(m => [m.id, m]));
+
+  const today = toISODate();
+  const { rows: challenges } = await db(
+    `SELECT * FROM ffc_challenges WHERE start_date <= ? AND end_date >= ? ORDER BY start_date LIMIT 1`,
+    [today, today]
+  );
+  if (!challenges.length) return;
+  const challenge = challenges[0];
+
+  const [teamsRes, partsRes, entriesRes] = await Promise.all([
+    db(`SELECT * FROM ffc_teams WHERE challenge_id = ?`, [challenge.id]),
+    db(`SELECT * FROM ffc_participants WHERE challenge_id = ?`, [challenge.id]),
+    db(`SELECT member_id, amount FROM ffc_entries WHERE challenge_id = ?`, [challenge.id]),
+  ]);
+  const standings = computeStandings(entriesRes.rows, partsRes.rows, teamsRes.rows, challenge.mode);
+  if (!standings.length) return;
+
+  document.getElementById("header-title").textContent = challenge.name;
+
+  const total = daysBetween(challenge.start_date, challenge.end_date);
+  const elapsed = Math.min(Math.max(daysBetween(challenge.start_date, today), 0), total);
+  const pct = Math.round((elapsed / total) * 100);
+
+  const rows = standings.slice(0, 4).map((row, i) => {
+    const isMe = !!ME && row.memberIds.includes(ME.id);
+    let label, color;
+    if (row.kind === "team") {
+      const team = teamsRes.rows.find(t => t.id === row.id);
+      label = team?.name ?? "Team";
+      color = team?.color ?? "#6366f1";
+    } else {
+      const member = memberMap.get(row.id);
+      label = member?.name ?? "Unknown";
+      color = memberColor(row.id, members);
+    }
+    return `
+      <div class="rank-row${isMe ? " me" : ""}">
+        <span class="rank-label">${rankLabel(i)}</span>
+        <span class="member-avatar" style="background:${color}">${esc(initial(label))}</span>
+        <span class="row-name">${esc(label)}</span>
+        <span class="row-total">${Number(row.total).toLocaleString(undefined, { maximumFractionDigits: 1 })} ${esc(challenge.unit_label)}</span>
+      </div>
+    `;
+  }).join("");
+
+  document.getElementById("content").innerHTML = `
+    <div>
+      <div class="progress-line">Day ${elapsed} of ${total}</div>
+      <div class="progress-bar"><div class="progress-bar-fill" style="width:${pct}%"></div></div>
+    </div>
+    ${rows}
+  `;
+}
+
+init();
+</script>
+</body>
+</html>
