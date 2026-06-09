@@ -684,7 +684,7 @@ window.openLogEntry = function() {
   setTimeout(() => document.getElementById("le-amount").focus(), 50);
 };
 
-window.submitLogEntry = async function() {
+window.submitLogEntry = function() {
   const date = document.getElementById("le-date").value;
   const amountStr = document.getElementById("le-amount").value;
   const note = document.getElementById("le-note").value.trim();
@@ -693,50 +693,50 @@ window.submitLogEntry = async function() {
   if (!date) { document.getElementById("le-date").focus(); return; }
   if (!amountStr || !Number.isFinite(amount) || amount < 0) { document.getElementById("le-amount").focus(); return; }
 
-  const btn = document.getElementById("le-submit");
-  btn.disabled = true;
-  btn.textContent = "Saving…";
+  const { challenge } = detail;
+  const existing = detail.entries.find(e => e.member_id === ME.id && e.entry_date === date);
+  const now = new Date().toISOString();
 
-  try {
-    const { challenge } = detail;
-    const existing = detail.entries.find(e => e.member_id === ME.id && e.entry_date === date);
-    const now = new Date().toISOString();
-
-    if (existing) {
-      await db(`UPDATE ffc_entries SET amount = ?, note = ? WHERE household_id = current_setting('app.household_id', true)::uuid AND id = ?`,
-        [amount, note || null, existing.id]);
-      existing.amount = amount;
-      existing.note = note || null;
-    } else {
-      const id = crypto.randomUUID();
-      await db(
-        `INSERT INTO ffc_entries (household_id, id, challenge_id, member_id, entry_date, amount, note, created_at)
-         VALUES (current_setting('app.household_id', true)::uuid, ?, ?, ?, ?, ?, ?, ?)`,
-        [id, challenge.id, ME.id, date, amount, note || null, now]
-      );
-      detail.entries = [{ id, challenge_id: challenge.id, member_id: ME.id, entry_date: date, amount, note: note || null, created_at: now }, ...detail.entries]
-        .sort((a, b) => (b.entry_date + b.created_at).localeCompare(a.entry_date + a.created_at));
-    }
-
+  if (existing) {
+    const oldAmount = existing.amount;
+    const oldNote = existing.note;
+    existing.amount = amount;
+    existing.note = note || null;
     closeModal();
     renderDetail();
-    toast(existing ? "Entry updated" : "Activity logged!");
-
-    Promise.all([
-      fetch("/api/activity", {
-        method: "POST", headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          type: "fitness_entry_logged", actor: ME.name,
-          description: `${ME.name} logged ${formatAmount(amount)} ${challenge.unit_label} in "${challenge.name}"`,
-          metadata: { deepLink: { appId: APP_ID, params: { challengeId: challenge.id } } },
-        }),
-      }).catch(() => {}),
-    ]).catch(() => {});
-  } catch (e) {
-    btn.disabled = false;
-    btn.textContent = "Save";
-    toast(`Error: ${e.message}`);
+    toast("Entry updated");
+    db(`UPDATE ffc_entries SET amount = ?, note = ? WHERE household_id = current_setting('app.household_id', true)::uuid AND id = ?`,
+      [amount, note || null, existing.id]).catch(() => {
+      existing.amount = oldAmount;
+      existing.note = oldNote;
+      renderDetail();
+      toast("Failed to save — entry reverted");
+    });
+  } else {
+    const id = crypto.randomUUID();
+    const entry = { id, challenge_id: challenge.id, member_id: ME.id, entry_date: date, amount, note: note || null, created_at: now };
+    detail.entries = [entry, ...detail.entries]
+      .sort((a, b) => (b.entry_date + b.created_at).localeCompare(a.entry_date + a.created_at));
+    closeModal();
+    renderDetail();
+    toast("Activity logged!");
+    db(`INSERT INTO ffc_entries (household_id, id, challenge_id, member_id, entry_date, amount, note, created_at)
+        VALUES (current_setting('app.household_id', true)::uuid, ?, ?, ?, ?, ?, ?, ?)`,
+      [id, challenge.id, ME.id, date, amount, note || null, now]).catch(() => {
+      detail.entries = detail.entries.filter(e => e.id !== id);
+      renderDetail();
+      toast("Failed to save — entry removed");
+    });
   }
+
+  fetch("/api/activity", {
+    method: "POST", headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({
+      type: "fitness_entry_logged", actor: ME.name,
+      description: `${ME.name} logged ${formatAmount(amount)} ${challenge.unit_label} in "${challenge.name}"`,
+      metadata: { deepLink: { appId: APP_ID, params: { challengeId: challenge.id } } },
+    }),
+  }).catch(() => {});
 };
 
 // ── New Challenge ──────────────────────────────────────────────────────────────
@@ -898,17 +898,17 @@ window.submitNewChallenge = async function() {
 
     const teamIdByTempId = new Map();
     if (newChallenge.mode === "team") {
-      for (const team of newChallenge.teams) {
-        if (!team.memberIds.length || !team.name.trim()) continue;
-        const teamId = crypto.randomUUID();
-        teamIdByTempId.set(team.tempId, teamId);
-        await db(
-          `INSERT INTO ffc_teams (household_id, id, challenge_id, name, color) VALUES (current_setting('app.household_id', true)::uuid, ?, ?, ?, ?)`,
-          [teamId, challengeId, team.name.trim(), team.color]
-        );
+      const validTeams = newChallenge.teams.filter(t => t.memberIds.length && t.name.trim());
+      for (const team of validTeams) {
+        teamIdByTempId.set(team.tempId, crypto.randomUUID());
       }
+      await Promise.all(validTeams.map(team =>
+        db(`INSERT INTO ffc_teams (household_id, id, challenge_id, name, color) VALUES (current_setting('app.household_id', true)::uuid, ?, ?, ?, ?)`,
+          [teamIdByTempId.get(team.tempId), challengeId, team.name.trim(), team.color])
+      ));
     }
 
+    const partInserts = [];
     for (const memberId of newChallenge.participantIds) {
       let teamId = null;
       if (newChallenge.mode === "team") {
@@ -916,12 +916,13 @@ window.submitNewChallenge = async function() {
         teamId = team ? teamIdByTempId.get(team.tempId) : null;
         if (!teamId) continue; // unassigned participants are skipped in team mode
       }
-      await db(
+      partInserts.push(db(
         `INSERT INTO ffc_participants (household_id, id, challenge_id, member_id, team_id, joined_at)
          VALUES (current_setting('app.household_id', true)::uuid, ?, ?, ?, ?, ?)`,
         [crypto.randomUUID(), challengeId, memberId, teamId, now]
-      );
+      ));
     }
+    await Promise.all(partInserts);
 
     challenges = [{ id: challengeId, name, activity_label: activityLabel, unit_label: unitLabel, mode: newChallenge.mode, start_date: start, end_date: end, created_by: ME?.name ?? "", created_at: now }, ...challenges];
 
