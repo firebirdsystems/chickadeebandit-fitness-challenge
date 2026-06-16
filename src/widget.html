@@ -89,16 +89,16 @@ async function init() {
 
   const today = toISODate();
   const { rows: challenges } = await db(
-    `SELECT * FROM ffc_challenges WHERE start_date <= ? AND end_date >= ? ORDER BY start_date LIMIT 1`,
+    `SELECT * FROM app_family_fitness_challenge__ffc_challenges WHERE start_date <= ? AND end_date >= ? ORDER BY start_date LIMIT 1`,
     [today, today]
   );
   if (!challenges.length) return;
   const challenge = challenges[0];
 
   const [teamsRes, partsRes, entriesRes] = await Promise.all([
-    db(`SELECT * FROM ffc_teams WHERE challenge_id = ?`, [challenge.id]),
-    db(`SELECT * FROM ffc_participants WHERE challenge_id = ?`, [challenge.id]),
-    db(`SELECT member_id, amount FROM ffc_entries WHERE challenge_id = ?`, [challenge.id]),
+    db(`SELECT * FROM app_family_fitness_challenge__ffc_teams WHERE challenge_id = ?`, [challenge.id]),
+    db(`SELECT * FROM app_family_fitness_challenge__ffc_participants WHERE challenge_id = ?`, [challenge.id]),
+    db(`SELECT member_id, amount FROM app_family_fitness_challenge__ffc_entries WHERE challenge_id = ?`, [challenge.id]),
   ]);
   const standings = computeStandings(entriesRes.rows, partsRes.rows, teamsRes.rows, challenge.mode);
   if (!standings.length) return;

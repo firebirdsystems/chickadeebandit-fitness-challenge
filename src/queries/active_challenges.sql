@@ -8,8 +8,7 @@ SELECT
   end_date,
   created_by,
   created_at
-FROM ffc_challenges
-WHERE household_id = current_setting('app.household_id', true)::uuid
-  AND CURRENT_DATE BETWEEN start_date::date AND end_date::date
+FROM app_family_fitness_challenge__ffc_challenges
+WHERE CURRENT_DATE BETWEEN date(start_date) AND date(end_date)
 ORDER BY start_date
 LIMIT 50

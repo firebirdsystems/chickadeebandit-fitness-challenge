@@ -381,7 +381,7 @@ async function loadMembers() {
 }
 
 async function loadChallenges() {
-  const { rows } = await db(`SELECT * FROM ffc_challenges ORDER BY start_date DESC`);
+  const { rows } = await db(`SELECT * FROM app_family_fitness_challenge__ffc_challenges ORDER BY start_date DESC`);
   challenges = rows;
 }
 
@@ -435,9 +435,9 @@ window.openChallenge = async function(challengeId) {
   if (!challenge) return;
 
   const [teamsRes, partsRes, entriesRes] = await Promise.all([
-    db(`SELECT * FROM ffc_teams WHERE challenge_id = ?`, [challengeId]),
-    db(`SELECT * FROM ffc_participants WHERE challenge_id = ?`, [challengeId]),
-    db(`SELECT * FROM ffc_entries WHERE challenge_id = ? ORDER BY entry_date DESC, created_at DESC`, [challengeId]),
+    db(`SELECT * FROM app_family_fitness_challenge__ffc_teams WHERE challenge_id = ?`, [challengeId]),
+    db(`SELECT * FROM app_family_fitness_challenge__ffc_participants WHERE challenge_id = ?`, [challengeId]),
+    db(`SELECT * FROM app_family_fitness_challenge__ffc_entries WHERE challenge_id = ? ORDER BY entry_date DESC, created_at DESC`, [challengeId]),
   ]);
   detail = {
     challenge,
@@ -705,7 +705,7 @@ window.submitLogEntry = function() {
     closeModal();
     renderDetail();
     toast("Entry updated");
-    db(`UPDATE ffc_entries SET amount = ?, note = ? WHERE household_id = current_setting('app.household_id', true)::uuid AND id = ?`,
+    db(`UPDATE app_family_fitness_challenge__ffc_entries SET amount = ?, note = ? WHERE id = ?`,
       [amount, note || null, existing.id]).catch(() => {
       existing.amount = oldAmount;
       existing.note = oldNote;
@@ -720,8 +720,8 @@ window.submitLogEntry = function() {
     closeModal();
     renderDetail();
     toast("Activity logged!");
-    db(`INSERT INTO ffc_entries (household_id, id, challenge_id, member_id, entry_date, amount, note, created_at)
-        VALUES (current_setting('app.household_id', true)::uuid, ?, ?, ?, ?, ?, ?, ?)`,
+    db(`INSERT INTO app_family_fitness_challenge__ffc_entries (id, challenge_id, member_id, entry_date, amount, note, created_at)
+        VALUES (?, ?, ?, ?, ?, ?, ?)`,
       [id, challenge.id, ME.id, date, amount, note || null, now]).catch(() => {
       detail.entries = detail.entries.filter(e => e.id !== id);
       renderDetail();
@@ -891,8 +891,8 @@ window.submitNewChallenge = async function() {
     const now = new Date().toISOString();
 
     await db(
-      `INSERT INTO ffc_challenges (household_id, id, name, activity_label, unit_label, mode, start_date, end_date, created_by, created_at)
-       VALUES (current_setting('app.household_id', true)::uuid, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+      `INSERT INTO app_family_fitness_challenge__ffc_challenges (id, name, activity_label, unit_label, mode, start_date, end_date, created_by, created_at)
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`,
       [challengeId, name, activityLabel, unitLabel, newChallenge.mode, start, end, ME?.name ?? "", now]
     );
 
@@ -903,7 +903,7 @@ window.submitNewChallenge = async function() {
         teamIdByTempId.set(team.tempId, crypto.randomUUID());
       }
       await Promise.all(validTeams.map(team =>
-        db(`INSERT INTO ffc_teams (household_id, id, challenge_id, name, color) VALUES (current_setting('app.household_id', true)::uuid, ?, ?, ?, ?)`,
+        db(`INSERT INTO app_family_fitness_challenge__ffc_teams (id, challenge_id, name, color) VALUES (?, ?, ?, ?)`,
           [teamIdByTempId.get(team.tempId), challengeId, team.name.trim(), team.color])
       ));
     }
@@ -917,8 +917,8 @@ window.submitNewChallenge = async function() {
         if (!teamId) continue; // unassigned participants are skipped in team mode
       }
       partInserts.push(db(
-        `INSERT INTO ffc_participants (household_id, id, challenge_id, member_id, team_id, joined_at)
-         VALUES (current_setting('app.household_id', true)::uuid, ?, ?, ?, ?, ?)`,
+        `INSERT INTO app_family_fitness_challenge__ffc_participants (id, challenge_id, member_id, team_id, joined_at)
+         VALUES (?, ?, ?, ?, ?)`,
         [crypto.randomUUID(), challengeId, memberId, teamId, now]
       ));
     }
