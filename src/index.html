@@ -729,7 +729,7 @@ window.submitLogEntry = function() {
     });
   }
 
-  fetch("/api/activity", {
+  fetch(window.__ACTIVITY_URL ?? "/api/activity", {
     method: "POST", headers: { "Content-Type": "application/json" },
     body: JSON.stringify({
       type: "fitness_entry_logged", actor: ME.name,
@@ -931,7 +931,7 @@ window.submitNewChallenge = async function() {
     toast("Challenge created!");
 
     Promise.all([
-      fetch("/api/activity", {
+      fetch(window.__ACTIVITY_URL ?? "/api/activity", {
         method: "POST", headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           type: "fitness_challenge_created", actor: ME?.name ?? "Someone",
