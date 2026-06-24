@@ -893,7 +893,7 @@ window.submitNewChallenge = async function() {
     await db(
       `INSERT INTO app_family_fitness_challenge__ffc_challenges (id, name, activity_label, unit_label, mode, start_date, end_date, created_by, created_at)
        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`,
-      [challengeId, name, activityLabel, unitLabel, newChallenge.mode, start, end, ME?.name ?? "", now]
+      [challengeId, name, activityLabel, unitLabel, newChallenge.mode, start, end, ME?.id ?? "", now]
     );
 
     const teamIdByTempId = new Map();
