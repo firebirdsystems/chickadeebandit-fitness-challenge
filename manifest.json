@@ -31,7 +31,7 @@
       "member_column": "member_id",
       "visibility_column": "visibility",
       "everyone_values": ["everyone"],
-      "write_owner_only": false
+      "write_owner_only": true
     }
   },
   "nav": { "label": "Fitness" },
