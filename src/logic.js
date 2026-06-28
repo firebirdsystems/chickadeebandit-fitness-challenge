@@ -53,9 +53,17 @@ export function daysBetween(startISO, endISO) {
 
 /** "upcoming" | "active" | "completed" based on today vs. the challenge's date range. */
 export function challengeStatus(challenge, todayISO = toISODate()) {
-  if (todayISO < challenge.start_date) return "upcoming";
-  if (todayISO > challenge.end_date) return "completed";
+  const today = dateOnly(todayISO);
+  const start = dateOnly(challenge.start_date);
+  const end = dateOnly(challenge.end_date);
+  if (today < start) return "upcoming";
+  if (today > end) return "completed";
   return "active";
+}
+
+/** Normalize a date or datetime string to the plain date used for comparisons. */
+export function dateOnly(value) {
+  return String(value ?? "").slice(0, 10);
 }
 
 /** Rank label for a zero-based index: medals for top 3, numbers after. */

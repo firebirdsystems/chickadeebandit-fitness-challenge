@@ -61,7 +61,7 @@
 
 <script type="module">
 import { esc, memberColor, initial } from "/hub-sdk.js";
-import { toISODate, daysBetween, computeStandings, rankLabel } from "./logic.js";
+import { toISODate, daysBetween, computeStandings, rankLabel, dateOnly } from "./logic.js";
 
 const CONTEXT = window.__CONTEXT_URL ?? "";
 const DB      = window.__DB_URL      ?? "";
@@ -89,7 +89,7 @@ async function init() {
 
   const today = toISODate();
   const { rows: challenges } = await db(
-    `SELECT * FROM app_family_fitness_challenge__ffc_challenges WHERE start_date <= ? AND end_date >= ? ORDER BY start_date LIMIT 1`,
+    `SELECT * FROM app_family_fitness_challenge__ffc_challenges WHERE date(start_date) <= date(?) AND date(end_date) >= date(?) ORDER BY date(start_date) LIMIT 1`,
     [today, today]
   );
   if (!challenges.length) return;
@@ -105,8 +105,10 @@ async function init() {
 
   document.getElementById("header-title").textContent = challenge.name;
 
-  const total = daysBetween(challenge.start_date, challenge.end_date);
-  const elapsed = Math.min(Math.max(daysBetween(challenge.start_date, today), 0), total);
+  const startDate = dateOnly(challenge.start_date);
+  const endDate = dateOnly(challenge.end_date);
+  const total = daysBetween(startDate, endDate);
+  const elapsed = Math.min(Math.max(daysBetween(startDate, today), 0), total);
   const pct = Math.round((elapsed / total) * 100);
 
   const rows = standings.slice(0, 4).map((row, i) => {

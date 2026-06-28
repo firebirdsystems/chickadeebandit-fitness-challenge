@@ -3,6 +3,7 @@ import {
   toISODate,
   addDays,
   daysBetween,
+  dateOnly,
   challengeStatus,
   rankLabel,
   computeStandings,
@@ -60,6 +61,18 @@ describe("challengeStatus", () => {
   });
   it("is completed after the end date", () => {
     expect(challengeStatus(challenge, "2026-07-01")).toBe("completed");
+  });
+
+  it("normalizes datetime strings before comparing", () => {
+    const datetimeChallenge = { start_date: "2026-06-01T00:00:00.000Z", end_date: "2026-06-30T23:59:59.999Z" };
+    expect(challengeStatus(datetimeChallenge, "2026-06-30")).toBe("active");
+  });
+});
+
+describe("dateOnly", () => {
+  it("returns the YYYY-MM-DD portion of date-like strings", () => {
+    expect(dateOnly("2026-06-30T23:59:59.999Z")).toBe("2026-06-30");
+    expect(dateOnly("2026-06-30")).toBe("2026-06-30");
   });
 });
 
