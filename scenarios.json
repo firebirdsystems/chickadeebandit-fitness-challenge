@@ -1,0 +1,50 @@
+{
+  "scenarios": [
+    {
+      "name": "a member joins a challenge once and logs at most one entry per day",
+      "members": { "a": "adult" },
+      "steps": [
+        {
+          "action": "seedRaw",
+          "sql": "INSERT INTO app_family_fitness_challenge__ffc_challenges (id, name, activity_label, unit_label, mode, start_date, end_date, created_by, created_at) VALUES (?, ?, ?, ?, 'individual', ?, ?, ?, ?)",
+          "params": ["c1", "Steps June", "Walking", "steps", "2026-06-01", "2026-06-30", "{{a}}", "2026-05-20T00:00:00Z"]
+        },
+        {
+          "action": "db",
+          "as": "a",
+          "sql": "INSERT INTO app_family_fitness_challenge__ffc_participants (id, challenge_id, member_id, joined_at) VALUES (?, ?, ?, ?)",
+          "params": ["pt1", "c1", "{{a}}", "2026-06-01T00:00:00Z"],
+          "expect": { "status": 200 }
+        },
+        {
+          "action": "db",
+          "as": "a",
+          "sql": "INSERT INTO app_family_fitness_challenge__ffc_participants (id, challenge_id, member_id, joined_at) VALUES (?, ?, ?, ?)",
+          "params": ["pt2", "c1", "{{a}}", "2026-06-02T00:00:00Z"],
+          "expect": { "status": 403 }
+        },
+        {
+          "action": "db",
+          "as": "a",
+          "sql": "INSERT INTO app_family_fitness_challenge__ffc_entries (id, challenge_id, member_id, entry_date, amount, visibility, created_at) VALUES (?, ?, ?, ?, ?, 'everyone', ?)",
+          "params": ["e1", "c1", "{{a}}", "2026-06-01", 9000, "2026-06-01T20:00:00Z"],
+          "expect": { "status": 200 }
+        },
+        {
+          "action": "db",
+          "as": "a",
+          "sql": "INSERT INTO app_family_fitness_challenge__ffc_entries (id, challenge_id, member_id, entry_date, amount, visibility, created_at) VALUES (?, ?, ?, ?, ?, 'everyone', ?)",
+          "params": ["e2", "c1", "{{a}}", "2026-06-01", 500, "2026-06-01T21:00:00Z"],
+          "expect": { "status": 403 }
+        },
+        {
+          "action": "db",
+          "as": "a",
+          "sql": "INSERT INTO app_family_fitness_challenge__ffc_entries (id, challenge_id, member_id, entry_date, amount, visibility, created_at) VALUES (?, ?, ?, ?, ?, 'everyone', ?)",
+          "params": ["e3", "c1", "{{a}}", "2026-06-02", 7000, "2026-06-02T20:00:00Z"],
+          "expect": { "status": 200 }
+        }
+      ]
+    }
+  ]
+}
