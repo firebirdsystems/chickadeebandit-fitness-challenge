@@ -26,9 +26,10 @@
     },
     "ffc_participants": {
       "kind": "adult_writable",
-      "unique_per_member": {
+      "max_per_member": {
         "member_column": "member_id",
-        "scope_columns": ["challenge_id"]
+        "scope_columns": ["challenge_id"],
+        "limit": 1
       }
     },
     "ffc_entries": {
@@ -37,9 +38,10 @@
       "visibility_column": "visibility",
       "everyone_values": ["everyone"],
       "write_owner_only": true,
-      "unique_per_member": {
+      "max_per_member": {
         "member_column": "member_id",
-        "scope_columns": ["challenge_id", "entry_date"]
+        "scope_columns": ["challenge_id", "entry_date"],
+        "limit": 1
       }
     }
   },
