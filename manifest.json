@@ -1,5 +1,6 @@
 {
   "id": "family-fitness-challenge",
+  "contexts": ["household", "shared_space"],
   "name": "Family Fitness Challenge",
   "version": "1.0.0",
   "description": "Run step, distance, or activity challenges with individual or team leaderboards, in-challenge streaks, and badges. Manual entry to start.",
