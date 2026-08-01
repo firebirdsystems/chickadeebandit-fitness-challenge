@@ -196,6 +196,13 @@
       font-size: 0.9rem; font-weight: 500; opacity: 0; transition: opacity .2s; pointer-events: none; z-index: 200;
     }
     .toast.visible { opacity: 1; }
+    .search-row { margin-bottom: 12px; }
+    .search-input {
+      width: 100%; border: 1.5px solid var(--border-mid, var(--border, #d1d5db));
+      border-radius: 8px; padding: 9px 11px; font: inherit;
+      background: var(--surface, var(--card, #fff)); color: var(--text, inherit);
+    }
+    .search-input:focus { outline: none; border-color: var(--accent, #6366f1); }
   </style>
 </head>
 <body>
@@ -208,6 +215,9 @@
 
 <!-- ── List view ── -->
 <div id="view-list" class="view active">
+  <div class="search-row" id="search-row" style="display:none">
+    <input id="search" class="search-input" type="search" placeholder="Search challenges…" aria-label="Search challenges" />
+  </div>
   <div id="list-content"></div>
 </div>
 
@@ -328,10 +338,10 @@
 <div class="toast" id="toast"></div>
 
 <script type="module">
-import { esc, memberColor, initial } from "/hub-sdk.js";
+import { esc, memberColor, initial, searchMatch } from "/hub-sdk.js";
 import {
   UNIT_PRESETS, BADGES, toISODate, daysBetween, challengeStatus, rankLabel,
-  computeStandings, currentStreak, computeBadges,
+  computeStandings, currentStreak, computeBadges, searchableFields,
 } from "./logic.js";
 
 const CONTEXT = window.__CONTEXT_URL ?? "";
@@ -343,6 +353,7 @@ const APP_ID  = window.__APP_ID ?? "family-fitness-challenge";
 let members = [];
 let memberMap = new Map();
 let challenges = [];          // list of { ...row }
+let searchQ = "";       // in-app search (see logic.js searchableFields)
 let modalEl = null;
 
 // Detail-view state for the currently open challenge
@@ -455,10 +466,18 @@ window.openChallenge = async function(challengeId) {
 };
 
 // ── List view ──────────────────────────────────────────────────────────────────
+// Only the list pane is redrawn, so the search box keeps focus.
+document.addEventListener("input", (e) => {
+  if (e.target.id !== "search") return;
+  searchQ = e.target.value;
+  renderList();
+});
+
 function renderList() {
   const today = toISODate();
+  const matched = searchQ ? challenges.filter(c => searchMatch(searchQ, searchableFields(c))) : challenges;
   const groups = { active: [], upcoming: [], completed: [] };
-  for (const c of challenges) groups[challengeStatus(c, today)].push(c);
+  for (const c of matched) groups[challengeStatus(c, today)].push(c);
 
   const sections = [
     ["active", "Active"],
@@ -467,12 +486,24 @@ function renderList() {
   ];
 
   const container = document.getElementById("list-content");
+  // Only worth offering the box once there is something to search.
+  const searchRow = document.getElementById("search-row");
+  if (searchRow) searchRow.style.display = challenges.length ? "" : "none";
 
   if (!challenges.length) {
     container.innerHTML = `
       <div class="empty-state">
         <div class="empty-icon">🏃</div>
         <p>No challenges yet — create one to start tracking activity together!</p>
+      </div>`;
+    return;
+  }
+
+  if (!matched.length) {
+    container.innerHTML = `
+      <div class="empty-state">
+        <div class="empty-icon">🔍</div>
+        <p>No challenges match "${esc(searchQ)}".</p>
       </div>`;
     return;
   }

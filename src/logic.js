@@ -161,3 +161,12 @@ export function computeBadges(member, challenge, entries, standings, todayISO = 
 
   return badges;
 }
+
+/**
+ * Fields the in-app search matches against (see hub-sdk `searchMatch`).
+ * The activity label says what is being counted (steps, laps,
+ * minutes), which is how a past challenge is recognised.
+ */
+export function searchableFields(item) {
+  return [item.name, item.activity_label, item.unit_label, item.note];
+}

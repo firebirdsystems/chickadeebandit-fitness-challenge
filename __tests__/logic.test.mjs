@@ -9,7 +9,7 @@ import {
   computeStandings,
   currentStreak,
   computeBadges,
-  BADGES,
+  BADGES, searchableFields,
 } from "../src/logic.js";
 
 // ── date helpers ────────────────────────────────────────────────────────────────
@@ -252,3 +252,10 @@ describe("BADGES catalog", () => {
 function addDaysForTest(isoDate, days) {
   return addDays(isoDate, days);
 }
+
+describe("searchableFields", () => {
+  it("matches on the activity label — what is actually being counted", () => {
+    const fields = searchableFields({ name: "March push", activity_label: "steps", unit_label: "steps", note: "" });
+    expect(fields).toContain("steps");
+  });
+});
