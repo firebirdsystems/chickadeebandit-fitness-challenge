@@ -43,7 +43,26 @@
         "member_column": "member_id",
         "scope_columns": ["challenge_id", "entry_date"],
         "limit": 1
+      },
+      "retain_days": {
+        "default": 730,
+        "timestamp_column": "entry_date",
+        "override_key": "entry_history"
       }
+    }
+  },
+  "member_references": {
+    "ffc_challenges": {
+      "column": "created_by",
+      "on_removed": "keep"
+    },
+    "ffc_participants": {
+      "column": "member_id",
+      "on_removed": "delete"
+    },
+    "ffc_entries": {
+      "column": "member_id",
+      "on_removed": "keep"
     }
   },
   "nav": { "label": "Fitness" },

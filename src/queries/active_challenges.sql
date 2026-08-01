@@ -9,6 +9,6 @@ SELECT
   created_by,
   created_at
 FROM app_family_fitness_challenge__ffc_challenges
-WHERE CURRENT_DATE BETWEEN date(start_date) AND date(end_date)
+WHERE :today BETWEEN date(start_date) AND date(end_date)
 ORDER BY start_date
 LIMIT 50
