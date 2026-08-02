@@ -348,6 +348,20 @@ const CONTEXT = window.__CONTEXT_URL ?? "";
 const DB      = window.__DB_URL      ?? "";
 const ME      = window.__CURRENT_MEMBER ?? null;
 const APP_ID  = window.__APP_ID ?? "family-fitness-challenge";
+const EVENTS  = window.__EVENTS_URL ?? "";
+
+async function publishEvent(type, subjectId, payload = {}) {
+  if (!EVENTS) return;
+  try {
+    await fetch(EVENTS, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ type, subject_id: subjectId, payload }),
+    });
+  } catch {
+    // The rows are already written; a failed publish is not fatal.
+  }
+}
 
 // ── State ──────────────────────────────────────────────────────────────────────
 let members = [];
@@ -970,6 +984,15 @@ window.submitNewChallenge = async function() {
           metadata: { deepLink: { appId: APP_ID, params: { challengeId } } },
         }),
       }).catch(() => {}),
+      // Published once the challenge AND its participants exist, so a rule that
+      // reacts to it sees a complete challenge. Individual entries are not
+      // published — that would put one member's daily activity on the bus.
+      publishEvent("fitness.challenge_started", challengeId, {
+        name,
+        activity_label: activityLabel,
+        start_date: start,
+        end_date: end,
+      }),
     ]).catch(() => {});
   } catch (e) {
     btn.disabled = false;

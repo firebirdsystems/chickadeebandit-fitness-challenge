@@ -66,6 +66,30 @@
     }
   },
   "nav": { "label": "Fitness" },
+  "agenda": {
+    "kind": "routine",
+    "label": "Fitness",
+    "source": {
+      "kind": "sql",
+      "query": "SELECT c.id AS id, c.name AS title, c.activity_label AS subtitle, p.member_id AS member_id, :today AS when_at, CASE WHEN e.id IS NULL THEN 0 ELSE 1 END AS done FROM app_family_fitness_challenge__ffc_challenges c JOIN app_family_fitness_challenge__ffc_participants p ON p.challenge_id = c.id AND p.member_id = :me LEFT JOIN app_family_fitness_challenge__ffc_entries e ON e.challenge_id = c.id AND e.member_id = :me AND e.entry_date = :today WHERE c.start_date <= :today AND c.end_date >= :today ORDER BY c.name LIMIT 10"
+    }
+  },
+  "glance": {
+    "source": {
+      "kind": "sql",
+      "query": "SELECT COUNT(*) AS n FROM app_family_fitness_challenge__ffc_challenges c JOIN app_family_fitness_challenge__ffc_participants p ON p.challenge_id = c.id AND p.member_id = :me LEFT JOIN app_family_fitness_challenge__ffc_entries e ON e.challenge_id = c.id AND e.member_id = :me AND e.entry_date = :today WHERE c.start_date <= :today AND c.end_date >= :today AND e.id IS NULL LIMIT 1"
+    },
+    "display": {
+      "template": "badge",
+      "count": "n",
+      "label": "challenges to log today",
+      "severity": "info"
+    }
+  },
+  "publishes": ["fitness.challenge_started"],
+  "publish_acls": {
+    "fitness.challenge_started": { "require_role": "adult" }
+  },
   "widget": { "label": "Challenge", "size": "small" },
   "resource_limits": {
     "max_db_bytes": 52428800
