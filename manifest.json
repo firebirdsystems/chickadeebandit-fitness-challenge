@@ -17,6 +17,9 @@
     "requires_approval": false
   },
   "storage": "db",
+  "preload": {
+    "ffc_challenges": {"sql": "SELECT * FROM app_family_fitness_challenge__ffc_challenges ORDER BY start_date DESC"}
+  },
   "db_encryption": "off",
   "row_policies": {
     "ffc_challenges": {
