@@ -774,14 +774,16 @@ window.submitLogEntry = function() {
     });
   }
 
-  fetch(window.__ACTIVITY_URL ?? "/api/activity", {
-    method: "POST", headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({
-      type: "fitness_entry_logged", actor: ME.name,
-      description: `${ME.name} logged ${formatAmount(amount)} ${challenge.unit_label} in "${challenge.name}"`,
-      metadata: { deepLink: { appId: APP_ID, params: { challengeId: challenge.id } } },
-    }),
-  }).catch(() => {});
+  // No activity-feed write. /api/activity accepts only the hub's own closed
+  // ActivityType union (CALLER_ALLOWED_ACTIVITY_TYPES); "fitness_entry_logged"
+  // is not in it, so this was refused 403 on every entry and no household ever
+  // saw it — a fetch does not reject on 4xx, so the .catch() hid it. It also
+  // sent an `actor` the hub ignores, resolving that from the session instead.
+  //
+  // Nothing replaces it here on purpose: an entry is one member's daily
+  // activity, which is exactly what publishEvent deliberately withholds from
+  // the bus below, and a per-entry feed row would carry it to the household by
+  // another road.
 };
 
 // ── New Challenge ──────────────────────────────────────────────────────────────
@@ -975,15 +977,11 @@ window.submitNewChallenge = async function() {
     renderList();
     toast("Challenge created!");
 
+    // The activity-feed write that stood here posted
+    // "fitness_challenge_created", which is not one of the hub's own
+    // ActivityType values a caller may write, so it was refused 403 on every
+    // challenge and no household ever saw it.
     Promise.all([
-      fetch(window.__ACTIVITY_URL ?? "/api/activity", {
-        method: "POST", headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          type: "fitness_challenge_created", actor: ME?.name ?? "Someone",
-          description: `${ME?.name ?? "Someone"} started a new challenge: "${name}"`,
-          metadata: { deepLink: { appId: APP_ID, params: { challengeId } } },
-        }),
-      }).catch(() => {}),
       // Published once the challenge AND its participants exist, so a rule that
       // reacts to it sees a complete challenge. Individual entries are not
       // published — that would put one member's daily activity on the bus.
