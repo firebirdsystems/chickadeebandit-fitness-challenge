@@ -338,9 +338,9 @@
 <div class="toast" id="toast"></div>
 
 <script type="module">
-import { esc, memberColor, initial, searchMatch } from "/hub-sdk.js";
+import { esc, memberColor, initial, searchMatch, hubToday} from "/hub-sdk.js";
 import {
-  UNIT_PRESETS, BADGES, toISODate, daysBetween, challengeStatus, rankLabel,
+  UNIT_PRESETS, BADGES, daysBetween, challengeStatus, rankLabel,
   computeStandings, currentStreak, computeBadges, searchableFields,
 } from "./logic.js";
 
@@ -488,7 +488,7 @@ document.addEventListener("input", (e) => {
 });
 
 function renderList() {
-  const today = toISODate();
+  const today = hubToday();
   const matched = searchQ ? challenges.filter(c => searchMatch(searchQ, searchableFields(c))) : challenges;
   const groups = { active: [], upcoming: [], completed: [] };
   for (const c of matched) groups[challengeStatus(c, today)].push(c);
@@ -563,7 +563,7 @@ function fmtDate(iso) {
 // ── Detail view ────────────────────────────────────────────────────────────────
 function renderDetail() {
   const { challenge, teams, participants, entries } = detail;
-  const today = toISODate();
+  const today = hubToday();
   const status = challengeStatus(challenge, today);
   const standings = computeStandings(entries, participants, teams, challenge.mode);
 
@@ -720,8 +720,8 @@ function formatAmount(n) {
 // ── Log Activity ───────────────────────────────────────────────────────────────
 window.openLogEntry = function() {
   if (!ME || !detail) return;
-  document.getElementById("le-date").value = toISODate();
-  document.getElementById("le-date").max = toISODate();
+  document.getElementById("le-date").value = hubToday();
+  document.getElementById("le-date").max = hubToday();
   document.getElementById("le-amount").value = "";
   document.getElementById("le-amount-label").textContent = `Amount (${detail.challenge.unit_label})`;
   document.getElementById("le-note").value = "";
@@ -792,8 +792,8 @@ window.openNewChallenge = function() {
   document.getElementById("nc-name").value = "";
   document.getElementById("nc-activity-label").value = "";
   document.getElementById("nc-unit-label").value = "";
-  document.getElementById("nc-start").value = toISODate();
-  document.getElementById("nc-end").value = toISODate(new Date(Date.now() + 29 * 86400000));
+  document.getElementById("nc-start").value = hubToday();
+  document.getElementById("nc-end").value = hubToday(new Date(Date.now() + 29 * 86400000));
   renderPresets();
   setChallengeMode("individual");
   renderParticipantChips();
