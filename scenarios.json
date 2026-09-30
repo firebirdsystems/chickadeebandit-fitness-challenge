@@ -45,6 +45,107 @@
           "expect": { "status": 200 }
         }
       ]
+    },
+    {
+      "name": "only adults create challenges and enroll participants; a child is refused",
+      "members": { "kid": "child", "parent": "adult" },
+      "steps": [
+        {
+          "action": "db",
+          "as": "kid",
+          "sql": "INSERT INTO app_family_fitness_challenge__ffc_challenges (id, name, activity_label, unit_label, mode, start_date, end_date, created_by, created_at) VALUES (?, 'Steps June', 'Walking', 'steps', 'individual', '2026-06-01', '2026-06-30', ?, ?)",
+          "params": ["ck", "{{kid}}", "2026-01-01T00:00:00Z"],
+          "expect": { "status": 403 }
+        },
+        {
+          "action": "seedRaw",
+          "sql": "INSERT INTO app_family_fitness_challenge__ffc_challenges (id, name, activity_label, unit_label, mode, start_date, end_date, created_by, created_at) VALUES (?, 'Steps June', 'Walking', 'steps', 'individual', '2026-06-01', '2026-06-30', ?, ?)",
+          "params": ["c1", "{{parent}}", "2026-01-01T00:00:00Z"]
+        },
+        {
+          "action": "db",
+          "as": "kid",
+          "sql": "INSERT INTO app_family_fitness_challenge__ffc_participants (id, challenge_id, member_id, joined_at) VALUES (?, ?, ?, ?)",
+          "params": ["ptk", "c1", "{{kid}}", "2026-01-01T00:00:00Z"],
+          "expect": { "status": 403 }
+        },
+        {
+          "action": "db",
+          "as": "kid",
+          "sql": "INSERT INTO app_family_fitness_challenge__ffc_teams (id, challenge_id, name) VALUES ('t1', 'c1', 'Kids')",
+          "expect": { "status": 403 }
+        },
+        {
+          "action": "db",
+          "as": "parent",
+          "sql": "INSERT INTO app_family_fitness_challenge__ffc_participants (id, challenge_id, member_id, joined_at) VALUES (?, ?, ?, ?)",
+          "params": ["ptp", "c1", "{{kid}}", "2026-01-01T00:00:00Z"],
+          "expect": { "status": 200 }
+        },
+        {
+          "action": "db",
+          "as": "kid",
+          "sql": "SELECT member_id FROM app_family_fitness_challenge__ffc_participants WHERE challenge_id = 'c1'",
+          "expect": { "status": 200, "rowCount": 1, "rowsContain": [{ "member_id": "scn-kid" }] }
+        },
+        {
+          "action": "db",
+          "as": "kid",
+          "sql": "DELETE FROM app_family_fitness_challenge__ffc_participants WHERE id = 'ptp'",
+          "expect": { "status": 403 }
+        },
+        {
+          "action": "db",
+          "as": "parent",
+          "sql": "SELECT id FROM app_family_fitness_challenge__ffc_participants WHERE id = 'ptp'",
+          "expect": { "status": 200, "rowCount": 1 }
+        }
+      ]
+    },
+    {
+      "name": "a child logs their own daily entry but cannot alter an adult's entry",
+      "members": { "kid": "child", "parent": "adult" },
+      "steps": [
+        {
+          "action": "seedRaw",
+          "sql": "INSERT INTO app_family_fitness_challenge__ffc_challenges (id, name, activity_label, unit_label, mode, start_date, end_date, created_by, created_at) VALUES (?, 'Steps June', 'Walking', 'steps', 'individual', '2026-06-01', '2026-06-30', ?, ?)",
+          "params": ["c2", "{{parent}}", "2026-01-01T00:00:00Z"]
+        },
+        {
+          "action": "seedRaw",
+          "sql": "INSERT INTO app_family_fitness_challenge__ffc_entries (id, challenge_id, member_id, entry_date, amount, visibility, created_at) VALUES (?, ?, ?, ?, ?, 'everyone', ?)",
+          "params": ["ep", "c2", "{{parent}}", "2026-06-01", 9000, "2026-06-01T20:00:00Z"]
+        },
+        {
+          "action": "db",
+          "as": "kid",
+          "sql": "INSERT INTO app_family_fitness_challenge__ffc_entries (id, challenge_id, member_id, entry_date, amount, visibility, created_at) VALUES (?, ?, ?, ?, ?, 'everyone', ?)",
+          "params": ["ek", "c2", "{{kid}}", "2026-06-01", 4000, "2026-06-01T20:00:00Z"],
+          "expect": { "status": 200 }
+        },
+        {
+          "action": "db",
+          "as": "kid",
+          "sql": "UPDATE app_family_fitness_challenge__ffc_entries SET amount = 1 WHERE id = 'ep'",
+          "expect": { "status": 200 }
+        },
+        {
+          "action": "db",
+          "as": "kid",
+          "sql": "DELETE FROM app_family_fitness_challenge__ffc_entries WHERE id = 'ep'",
+          "expect": { "status": 200 }
+        },
+        {
+          "action": "db",
+          "as": "parent",
+          "sql": "SELECT id, member_id, amount FROM app_family_fitness_challenge__ffc_entries WHERE challenge_id = 'c2'",
+          "expect": {
+            "status": 200,
+            "rowCount": 2,
+            "rowsContain": [{ "id": "ep", "amount": 9000 }, { "id": "ek", "member_id": "scn-kid" }]
+          }
+        }
+      ]
     }
   ]
 }
