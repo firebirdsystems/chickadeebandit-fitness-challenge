@@ -187,7 +187,7 @@
     .modal-actions .btn-primary { flex: 1; }
 
     .empty-state { text-align: center; padding: 40px 20px; color: var(--hub-text-muted, #6b7280); }
-    .empty-state .empty-icon { font-size: 2.5rem; margin-bottom: 10px; }
+    .empty-state .empty-icon { margin-bottom: 10px; }
     .empty-state p { font-size: 0.9rem; }
 
     .toast {
@@ -209,7 +209,7 @@
 
 <div class="app-header">
   <button class="back-btn" id="back-btn" onclick="goToList()">← <span>Challenges</span></button>
-  <h1 class="app-title" id="app-title">🏃 Fitness Challenges</h1>
+  <h1 class="app-title"><span id="title-glyph"></span> <span id="app-title">Fitness Challenges</span></h1>
   <button class="new-btn" id="new-challenge-btn" onclick="openNewChallenge()">+ New Challenge</button>
 </div>
 
@@ -338,11 +338,14 @@
 <div class="toast" id="toast"></div>
 
 <script type="module">
-import { esc, memberColor, initial, searchMatch, hubToday} from "/hub-sdk.js";
+import { esc, memberColor, initial, searchMatch, hubToday, glyph, chickadee } from "/hub-sdk.js";
 import {
   UNIT_PRESETS, BADGES, daysBetween, challengeStatus, rankLabel,
   computeStandings, currentStreak, computeBadges, searchableFields,
 } from "./logic.js";
+
+// The page heading is static markup; its mark comes from the SDK.
+document.getElementById("title-glyph").innerHTML = glyph("dumbbell");
 
 const CONTEXT = window.__CONTEXT_URL ?? "";
 const DB      = window.__DB_URL      ?? "";
@@ -451,7 +454,8 @@ window.goToList = function() {
   document.getElementById("view-detail").classList.remove("active");
   document.getElementById("back-btn").classList.remove("visible");
   document.getElementById("new-challenge-btn").style.display = "";
-  document.getElementById("app-title").textContent = "🏃 Fitness Challenges";
+  document.getElementById("title-glyph").hidden = false;
+  document.getElementById("app-title").textContent = "Fitness Challenges";
   renderList();
 };
 
@@ -475,6 +479,7 @@ window.openChallenge = async function(challengeId) {
   document.getElementById("view-detail").classList.add("active");
   document.getElementById("back-btn").classList.add("visible");
   document.getElementById("new-challenge-btn").style.display = "none";
+  document.getElementById("title-glyph").hidden = true;
   document.getElementById("app-title").textContent = `${esc(challenge.activity_label)} · ${esc(challenge.name)}`;
   renderDetail();
 };
@@ -507,7 +512,7 @@ function renderList() {
   if (!challenges.length) {
     container.innerHTML = `
       <div class="empty-state">
-        <div class="empty-icon">🏃</div>
+        <div class="empty-icon">${chickadee("nest")}</div>
         <p>No challenges yet — create one to start tracking activity together!</p>
       </div>`;
     return;
@@ -516,7 +521,7 @@ function renderList() {
   if (!matched.length) {
     container.innerHTML = `
       <div class="empty-state">
-        <div class="empty-icon">🔍</div>
+        <div class="empty-icon">${chickadee("searching")}</div>
         <p>No challenges match "${esc(searchQ)}".</p>
       </div>`;
     return;
@@ -601,7 +606,7 @@ function renderStandings(standings, challenge) {
 
   const list = document.getElementById("standings-list");
   if (!standings.length) {
-    list.innerHTML = `<div class="empty-state"><div class="empty-icon">🏁</div><p>No participants yet</p></div>`;
+    list.innerHTML = `<div class="empty-state"><div class="empty-icon">${chickadee("nest")}</div><p>No participants yet</p></div>`;
     return;
   }
 
@@ -612,7 +617,7 @@ function renderStandings(standings, challenge) {
       return `
         <div class="lb-row">
           <div class="lb-rank">${rankLabel(i)}</div>
-          <span class="team-avatar" style="background:${esc(team?.color ?? "#6366f1")}">🏅</span>
+          <span class="team-avatar" style="background:${esc(team?.color ?? "#6366f1")}">${glyph("medal", { accent: "currentColor" })}</span>
           <div class="lb-name">
             ${esc(team?.name ?? "Team")}
             <div class="lb-sub">${esc(memberNames)}</div>
@@ -664,7 +669,7 @@ function renderYourStats(challenge, participants, entries, standings, status, to
       <div class="stat-tile-label">${challenge.mode === "team" ? "team rank" : "your rank"}</div>
     </div>
     <div class="stat-tile">
-      <div class="stat-tile-value">${streak}🔥</div>
+      <div class="stat-tile-value">${streak}${glyph("flame")}</div>
       <div class="stat-tile-label">day streak</div>
     </div>
   `;
@@ -684,14 +689,14 @@ function renderBadges(challenge, participants, entries, standings, status, today
   card.style.display = "";
   document.getElementById("badges-grid").innerHTML = earned.map(id => {
     const b = BADGES[id];
-    return `<div class="badge-chip" title="${esc(b.description)}"><span class="icon">${b.icon}</span>${esc(b.label)}</div>`;
+    return `<div class="badge-chip" title="${esc(b.description)}"><span class="icon">${glyph(b.glyph)}</span>${esc(b.label)}</div>`;
   }).join("");
 }
 
 function renderActivityFeed(entries) {
   const feed = document.getElementById("activity-feed");
   if (!entries.length) {
-    feed.innerHTML = `<div class="empty-state"><div class="empty-icon">📋</div><p>No activity logged yet</p></div>`;
+    feed.innerHTML = `<div class="empty-state"><div class="empty-icon">${chickadee("nest")}</div><p>No activity logged yet</p></div>`;
     return;
   }
   feed.innerHTML = entries.slice(0, 30).map(e => {
@@ -891,9 +896,9 @@ function renderTeamBlocks() {
   container.innerHTML = newChallenge.teams.map(team => `
     <div class="team-block">
       <div class="team-block-header">
-        <span class="team-avatar" style="background:${team.color}">🏅</span>
+        <span class="team-avatar" style="background:${team.color}">${glyph("medal", { accent: "currentColor" })}</span>
         <input type="text" value="${esc(team.name)}" oninput="renameTeam('${team.tempId}', this.value)" />
-        <button type="button" class="team-remove-btn" onclick="removeTeamBlock('${team.tempId}')" title="Remove team">✕</button>
+        <button type="button" class="team-remove-btn" onclick="removeTeamBlock('${team.tempId}')" title="Remove team" aria-label="Remove team">${glyph("close")}</button>
       </div>
       <div class="member-chips">
         ${newChallenge.participantIds.map(id => {

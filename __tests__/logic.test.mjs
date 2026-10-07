@@ -243,7 +243,7 @@ describe("BADGES catalog", () => {
   it("has display info for every badge id referenced by computeBadges", () => {
     for (const id of ["first_entry", "streak_3", "streak_7", "personal_best", "challenge_champion"]) {
       expect(BADGES[id]).toBeDefined();
-      expect(BADGES[id].icon).toBeTruthy();
+      expect(BADGES[id].glyph).toBeTruthy();
       expect(BADGES[id].label).toBeTruthy();
     }
   });

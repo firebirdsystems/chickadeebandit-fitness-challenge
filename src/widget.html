@@ -27,7 +27,7 @@
     .content { flex: 1; padding: 10px 14px 12px; display: flex; flex-direction: column; gap: 6px; overflow: hidden; }
 
     .empty { flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 6px; color: #9ca3af; text-align: center; }
-    .empty .icon { font-size: 1.8rem; }
+    .empty .icon { display: block; margin-bottom: 6px; }
     .empty p { font-size: 12px; }
 
     .progress-line { font-size: 11px; color: var(--hub-text-muted, #6b7280); margin-bottom: 2px; }
@@ -47,20 +47,25 @@
 <body>
 
 <div class="header">
-  <span class="header-icon">🏃</span>
+  <span class="header-icon"></span>
   <span class="header-title" id="header-title">Fitness Challenge</span>
   <a class="header-link" href="/run/family-fitness-challenge">Open</a>
 </div>
 
 <div class="content" id="content">
   <div class="empty">
-    <span class="icon">🏃</span>
+    <span class="icon"></span>
     <p>No active challenges</p>
   </div>
 </div>
 
 <script type="module">
-import { esc, memberColor, initial } from "/hub-sdk.js";
+import { esc, memberColor, initial, glyph, chickadee } from "/hub-sdk.js";
+
+// The header mark and the resting empty state are static markup, drawn here
+// because the glyphs come from the SDK.
+document.querySelector(".header-icon").innerHTML = glyph("dumbbell");
+document.querySelector(".empty .icon").innerHTML = chickadee("nest", { size: 56 });
 import { toISODate, daysBetween, computeStandings, rankLabel, dateOnly } from "./logic.js";
 
 const CONTEXT = window.__CONTEXT_URL ?? "";

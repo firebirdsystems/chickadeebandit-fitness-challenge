@@ -17,11 +17,11 @@ export const UNIT_PRESETS = [
 
 // ── Badge catalog ───────────────────────────────────────────────────────────────
 export const BADGES = {
-  first_entry:        { icon: "🎯", label: "First Entry",   description: "Logged your first activity in a challenge" },
-  streak_3:           { icon: "🔥", label: "3-Day Streak",  description: "Logged activity 3 days in a row" },
-  streak_7:           { icon: "🔥", label: "7-Day Streak",  description: "Logged activity 7 days in a row" },
-  personal_best:      { icon: "⭐", label: "Personal Best", description: "Hit your best single-day total in a challenge" },
-  challenge_champion: { icon: "🏆", label: "Champion",      description: "Finished #1 in a completed challenge" },
+  first_entry:        { glyph: "goal-ring", label: "First Entry",   description: "Logged your first activity in a challenge" },
+  streak_3:           { glyph: "flame", label: "3-Day Streak",  description: "Logged activity 3 days in a row" },
+  streak_7:           { glyph: "flame", label: "7-Day Streak",  description: "Logged activity 7 days in a row" },
+  personal_best:      { glyph: "star", label: "Personal Best", description: "Hit your best single-day total in a challenge" },
+  challenge_champion: { glyph: "trophy", label: "Champion",      description: "Finished #1 in a completed challenge" },
 };
 
 // ── Date helpers (plain "YYYY-MM-DD" strings — matches <input type="date">) ────
