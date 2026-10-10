@@ -1,0 +1,509 @@
+{
+  "seed": [
+    {
+      "sql": "INSERT INTO app_family_fitness_challenge__ffc_challenges (id, name, activity_label, unit_label, mode, start_date, end_date, created_by, created_at) VALUES (?, ?, ?, ?, ?, date('now','-8 days'), date('now','+22 days'), ?, strftime('%Y-%m-%dT%H:%M:%fZ','now','-10 days'))",
+      "params": [
+        "pf-c1",
+        "October Step-Off",
+        "Steps",
+        "steps",
+        "individual",
+        "{{me}}"
+      ]
+    },
+    {
+      "sql": "INSERT INTO app_family_fitness_challenge__ffc_challenges (id, name, activity_label, unit_label, mode, start_date, end_date, created_by, created_at) VALUES (?, ?, ?, ?, ?, date('now','-12 days'), date('now','+16 days'), ?, strftime('%Y-%m-%dT%H:%M:%fZ','now','-14 days'))",
+      "params": [
+        "pf-c2",
+        "Bike to the Lake",
+        "Cycling",
+        "miles",
+        "team",
+        "{{me}}"
+      ]
+    },
+    {
+      "sql": "INSERT INTO app_family_fitness_challenge__ffc_challenges (id, name, activity_label, unit_label, mode, start_date, end_date, created_by, created_at) VALUES (?, ?, ?, ?, ?, date('now','-5 days'), date('now','+9 days'), ?, strftime('%Y-%m-%dT%H:%M:%fZ','now','-7 days'))",
+      "params": [
+        "pf-c3",
+        "Push-Up Ladder",
+        "Push-ups",
+        "reps",
+        "individual",
+        "{{me}}"
+      ]
+    },
+    {
+      "sql": "INSERT INTO app_family_fitness_challenge__ffc_challenges (id, name, activity_label, unit_label, mode, start_date, end_date, created_by, created_at) VALUES (?, ?, ?, ?, ?, date('now','-45 days'), date('now','-15 days'), ?, strftime('%Y-%m-%dT%H:%M:%fZ','now','-47 days'))",
+      "params": [
+        "pf-c4",
+        "September Walk-a-thon",
+        "Walking",
+        "miles",
+        "individual",
+        "{{me}}"
+      ]
+    },
+    {
+      "sql": "INSERT INTO app_family_fitness_challenge__ffc_challenges (id, name, activity_label, unit_label, mode, start_date, end_date, created_by, created_at) VALUES (?, ?, ?, ?, ?, date('now','+10 days'), date('now','+45 days'), ?, strftime('%Y-%m-%dT%H:%M:%fZ','now','-2 days'))",
+      "params": [
+        "pf-c5",
+        "Thanksgiving Turkey Trot Prep",
+        "Running",
+        "miles",
+        "individual",
+        "{{me}}"
+      ]
+    },
+    {
+      "sql": "INSERT INTO app_family_fitness_challenge__ffc_teams (id, challenge_id, name, color) VALUES (?, ?, ?, ?)",
+      "params": [
+        "pf-t1",
+        "pf-c2",
+        "Trailblazers",
+        "#0284c7"
+      ]
+    },
+    {
+      "sql": "INSERT INTO app_family_fitness_challenge__ffc_teams (id, challenge_id, name, color) VALUES (?, ?, ?, ?)",
+      "params": [
+        "pf-t2",
+        "pf-c2",
+        "Chain Gang",
+        "#db2777"
+      ]
+    },
+    {
+      "sql": "INSERT INTO app_family_fitness_challenge__ffc_participants (id, challenge_id, member_id, team_id, joined_at) VALUES (?, ?, ?, NULL, strftime('%Y-%m-%dT%H:%M:%fZ','now','-10 days'))",
+      "params": [
+        "pf-p-c1",
+        "pf-c1",
+        "{{me}}"
+      ]
+    },
+    {
+      "sql": "INSERT INTO app_family_fitness_challenge__ffc_participants (id, challenge_id, member_id, team_id, joined_at) VALUES (?, ?, ?, ?, strftime('%Y-%m-%dT%H:%M:%fZ','now','-14 days'))",
+      "params": [
+        "pf-p-c2",
+        "pf-c2",
+        "{{me}}",
+        "pf-t1"
+      ]
+    },
+    {
+      "sql": "INSERT INTO app_family_fitness_challenge__ffc_participants (id, challenge_id, member_id, team_id, joined_at) VALUES (?, ?, ?, NULL, strftime('%Y-%m-%dT%H:%M:%fZ','now','-7 days'))",
+      "params": [
+        "pf-p-c3",
+        "pf-c3",
+        "{{me}}"
+      ]
+    },
+    {
+      "sql": "INSERT INTO app_family_fitness_challenge__ffc_participants (id, challenge_id, member_id, team_id, joined_at) VALUES (?, ?, ?, NULL, strftime('%Y-%m-%dT%H:%M:%fZ','now','-47 days'))",
+      "params": [
+        "pf-p-c4",
+        "pf-c4",
+        "{{me}}"
+      ]
+    },
+    {
+      "sql": "INSERT INTO app_family_fitness_challenge__ffc_participants (id, challenge_id, member_id, team_id, joined_at) VALUES (?, ?, ?, NULL, strftime('%Y-%m-%dT%H:%M:%fZ','now','-2 days'))",
+      "params": [
+        "pf-p-c5",
+        "pf-c5",
+        "{{me}}"
+      ]
+    },
+    {
+      "sql": "INSERT INTO app_family_fitness_challenge__ffc_entries (id, challenge_id, member_id, entry_date, amount, note, created_at, visibility) VALUES (?, ?, ?, date('now','0 days'), ?, NULL, strftime('%Y-%m-%dT%H:%M:%fZ','now','0 days'), ?)",
+      "params": [
+        "pf-e-c1-0",
+        "pf-c1",
+        "{{me}}",
+        8420,
+        "everyone"
+      ]
+    },
+    {
+      "sql": "INSERT INTO app_family_fitness_challenge__ffc_entries (id, challenge_id, member_id, entry_date, amount, note, created_at, visibility) VALUES (?, ?, ?, date('now','-1 days'), ?, NULL, strftime('%Y-%m-%dT%H:%M:%fZ','now','-1 days'), ?)",
+      "params": [
+        "pf-e-c1-1",
+        "pf-c1",
+        "{{me}}",
+        10310,
+        "everyone"
+      ]
+    },
+    {
+      "sql": "INSERT INTO app_family_fitness_challenge__ffc_entries (id, challenge_id, member_id, entry_date, amount, note, created_at, visibility) VALUES (?, ?, ?, date('now','-2 days'), ?, NULL, strftime('%Y-%m-%dT%H:%M:%fZ','now','-2 days'), ?)",
+      "params": [
+        "pf-e-c1-2",
+        "pf-c1",
+        "{{me}}",
+        6950,
+        "everyone"
+      ]
+    },
+    {
+      "sql": "INSERT INTO app_family_fitness_challenge__ffc_entries (id, challenge_id, member_id, entry_date, amount, note, created_at, visibility) VALUES (?, ?, ?, date('now','-3 days'), ?, ?, strftime('%Y-%m-%dT%H:%M:%fZ','now','-3 days'), ?)",
+      "params": [
+        "pf-e-c1-3",
+        "pf-c1",
+        "{{me}}",
+        12080,
+        "Long walk with the dog",
+        "everyone"
+      ]
+    },
+    {
+      "sql": "INSERT INTO app_family_fitness_challenge__ffc_entries (id, challenge_id, member_id, entry_date, amount, note, created_at, visibility) VALUES (?, ?, ?, date('now','-4 days'), ?, NULL, strftime('%Y-%m-%dT%H:%M:%fZ','now','-4 days'), ?)",
+      "params": [
+        "pf-e-c1-4",
+        "pf-c1",
+        "{{me}}",
+        9240,
+        "everyone"
+      ]
+    },
+    {
+      "sql": "INSERT INTO app_family_fitness_challenge__ffc_entries (id, challenge_id, member_id, entry_date, amount, note, created_at, visibility) VALUES (?, ?, ?, date('now','-5 days'), ?, NULL, strftime('%Y-%m-%dT%H:%M:%fZ','now','-5 days'), ?)",
+      "params": [
+        "pf-e-c1-5",
+        "pf-c1",
+        "{{me}}",
+        7715,
+        "everyone"
+      ]
+    },
+    {
+      "sql": "INSERT INTO app_family_fitness_challenge__ffc_entries (id, challenge_id, member_id, entry_date, amount, note, created_at, visibility) VALUES (?, ?, ?, date('now','-6 days'), ?, NULL, strftime('%Y-%m-%dT%H:%M:%fZ','now','-6 days'), ?)",
+      "params": [
+        "pf-e-c1-6",
+        "pf-c1",
+        "{{me}}",
+        11460,
+        "everyone"
+      ]
+    },
+    {
+      "sql": "INSERT INTO app_family_fitness_challenge__ffc_entries (id, challenge_id, member_id, entry_date, amount, note, created_at, visibility) VALUES (?, ?, ?, date('now','-7 days'), ?, ?, strftime('%Y-%m-%dT%H:%M:%fZ','now','-7 days'), ?)",
+      "params": [
+        "pf-e-c1-7",
+        "pf-c1",
+        "{{me}}",
+        5320,
+        "Rainy day, treadmill only",
+        "everyone"
+      ]
+    },
+    {
+      "sql": "INSERT INTO app_family_fitness_challenge__ffc_entries (id, challenge_id, member_id, entry_date, amount, note, created_at, visibility) VALUES (?, ?, ?, date('now','-8 days'), ?, NULL, strftime('%Y-%m-%dT%H:%M:%fZ','now','-8 days'), ?)",
+      "params": [
+        "pf-e-c1-8",
+        "pf-c1",
+        "{{me}}",
+        9875,
+        "everyone"
+      ]
+    },
+    {
+      "sql": "INSERT INTO app_family_fitness_challenge__ffc_entries (id, challenge_id, member_id, entry_date, amount, note, created_at, visibility) VALUES (?, ?, ?, date('now','0 days'), ?, ?, strftime('%Y-%m-%dT%H:%M:%fZ','now','0 days'), ?)",
+      "params": [
+        "pf-e-c2-0",
+        "pf-c2",
+        "{{me}}",
+        6.5,
+        "Out and back on the river trail",
+        "everyone"
+      ]
+    },
+    {
+      "sql": "INSERT INTO app_family_fitness_challenge__ffc_entries (id, challenge_id, member_id, entry_date, amount, note, created_at, visibility) VALUES (?, ?, ?, date('now','-1 days'), ?, NULL, strftime('%Y-%m-%dT%H:%M:%fZ','now','-1 days'), ?)",
+      "params": [
+        "pf-e-c2-1",
+        "pf-c2",
+        "{{me}}",
+        4,
+        "everyone"
+      ]
+    },
+    {
+      "sql": "INSERT INTO app_family_fitness_challenge__ffc_entries (id, challenge_id, member_id, entry_date, amount, note, created_at, visibility) VALUES (?, ?, ?, date('now','-2 days'), ?, ?, strftime('%Y-%m-%dT%H:%M:%fZ','now','-2 days'), ?)",
+      "params": [
+        "pf-e-c2-2",
+        "pf-c2",
+        "{{me}}",
+        8.2,
+        "Hill repeats",
+        "everyone"
+      ]
+    },
+    {
+      "sql": "INSERT INTO app_family_fitness_challenge__ffc_entries (id, challenge_id, member_id, entry_date, amount, note, created_at, visibility) VALUES (?, ?, ?, date('now','-4 days'), ?, NULL, strftime('%Y-%m-%dT%H:%M:%fZ','now','-4 days'), ?)",
+      "params": [
+        "pf-e-c2-4",
+        "pf-c2",
+        "{{me}}",
+        5,
+        "everyone"
+      ]
+    },
+    {
+      "sql": "INSERT INTO app_family_fitness_challenge__ffc_entries (id, challenge_id, member_id, entry_date, amount, note, created_at, visibility) VALUES (?, ?, ?, date('now','-5 days'), ?, ?, strftime('%Y-%m-%dT%H:%M:%fZ','now','-5 days'), ?)",
+      "params": [
+        "pf-e-c2-5",
+        "pf-c2",
+        "{{me}}",
+        12.4,
+        "Saturday long ride",
+        "everyone"
+      ]
+    },
+    {
+      "sql": "INSERT INTO app_family_fitness_challenge__ffc_entries (id, challenge_id, member_id, entry_date, amount, note, created_at, visibility) VALUES (?, ?, ?, date('now','-7 days'), ?, NULL, strftime('%Y-%m-%dT%H:%M:%fZ','now','-7 days'), ?)",
+      "params": [
+        "pf-e-c2-7",
+        "pf-c2",
+        "{{me}}",
+        3.5,
+        "everyone"
+      ]
+    },
+    {
+      "sql": "INSERT INTO app_family_fitness_challenge__ffc_entries (id, challenge_id, member_id, entry_date, amount, note, created_at, visibility) VALUES (?, ?, ?, date('now','-8 days'), ?, NULL, strftime('%Y-%m-%dT%H:%M:%fZ','now','-8 days'), ?)",
+      "params": [
+        "pf-e-c2-8",
+        "pf-c2",
+        "{{me}}",
+        6,
+        "everyone"
+      ]
+    },
+    {
+      "sql": "INSERT INTO app_family_fitness_challenge__ffc_entries (id, challenge_id, member_id, entry_date, amount, note, created_at, visibility) VALUES (?, ?, ?, date('now','-9 days'), ?, NULL, strftime('%Y-%m-%dT%H:%M:%fZ','now','-9 days'), ?)",
+      "params": [
+        "pf-e-c2-9",
+        "pf-c2",
+        "{{me}}",
+        7.3,
+        "everyone"
+      ]
+    },
+    {
+      "sql": "INSERT INTO app_family_fitness_challenge__ffc_entries (id, challenge_id, member_id, entry_date, amount, note, created_at, visibility) VALUES (?, ?, ?, date('now','-11 days'), ?, ?, strftime('%Y-%m-%dT%H:%M:%fZ','now','-11 days'), ?)",
+      "params": [
+        "pf-e-c2-11",
+        "pf-c2",
+        "{{me}}",
+        10,
+        "First ride of the challenge",
+        "everyone"
+      ]
+    },
+    {
+      "sql": "INSERT INTO app_family_fitness_challenge__ffc_entries (id, challenge_id, member_id, entry_date, amount, note, created_at, visibility) VALUES (?, ?, ?, date('now','-12 days'), ?, NULL, strftime('%Y-%m-%dT%H:%M:%fZ','now','-12 days'), ?)",
+      "params": [
+        "pf-e-c2-12",
+        "pf-c2",
+        "{{me}}",
+        2.5,
+        "everyone"
+      ]
+    },
+    {
+      "sql": "INSERT INTO app_family_fitness_challenge__ffc_entries (id, challenge_id, member_id, entry_date, amount, note, created_at, visibility) VALUES (?, ?, ?, date('now','0 days'), ?, NULL, strftime('%Y-%m-%dT%H:%M:%fZ','now','0 days'), ?)",
+      "params": [
+        "pf-e-c3-0",
+        "pf-c3",
+        "{{me}}",
+        45,
+        "everyone"
+      ]
+    },
+    {
+      "sql": "INSERT INTO app_family_fitness_challenge__ffc_entries (id, challenge_id, member_id, entry_date, amount, note, created_at, visibility) VALUES (?, ?, ?, date('now','-1 days'), ?, ?, strftime('%Y-%m-%dT%H:%M:%fZ','now','-1 days'), ?)",
+      "params": [
+        "pf-e-c3-1",
+        "pf-c3",
+        "{{me}}",
+        40,
+        "Three sets",
+        "everyone"
+      ]
+    },
+    {
+      "sql": "INSERT INTO app_family_fitness_challenge__ffc_entries (id, challenge_id, member_id, entry_date, amount, note, created_at, visibility) VALUES (?, ?, ?, date('now','-2 days'), ?, NULL, strftime('%Y-%m-%dT%H:%M:%fZ','now','-2 days'), ?)",
+      "params": [
+        "pf-e-c3-2",
+        "pf-c3",
+        "{{me}}",
+        36,
+        "everyone"
+      ]
+    },
+    {
+      "sql": "INSERT INTO app_family_fitness_challenge__ffc_entries (id, challenge_id, member_id, entry_date, amount, note, created_at, visibility) VALUES (?, ?, ?, date('now','-3 days'), ?, NULL, strftime('%Y-%m-%dT%H:%M:%fZ','now','-3 days'), ?)",
+      "params": [
+        "pf-e-c3-3",
+        "pf-c3",
+        "{{me}}",
+        30,
+        "everyone"
+      ]
+    },
+    {
+      "sql": "INSERT INTO app_family_fitness_challenge__ffc_entries (id, challenge_id, member_id, entry_date, amount, note, created_at, visibility) VALUES (?, ?, ?, date('now','-4 days'), ?, NULL, strftime('%Y-%m-%dT%H:%M:%fZ','now','-4 days'), ?)",
+      "params": [
+        "pf-e-c3-4",
+        "pf-c3",
+        "{{me}}",
+        24,
+        "everyone"
+      ]
+    },
+    {
+      "sql": "INSERT INTO app_family_fitness_challenge__ffc_entries (id, challenge_id, member_id, entry_date, amount, note, created_at, visibility) VALUES (?, ?, ?, date('now','-5 days'), ?, ?, strftime('%Y-%m-%dT%H:%M:%fZ','now','-5 days'), ?)",
+      "params": [
+        "pf-e-c3-5",
+        "pf-c3",
+        "{{me}}",
+        20,
+        "Day one",
+        "everyone"
+      ]
+    },
+    {
+      "sql": "INSERT INTO app_family_fitness_challenge__ffc_entries (id, challenge_id, member_id, entry_date, amount, note, created_at, visibility) VALUES (?, ?, ?, date('now','-16 days'), ?, ?, strftime('%Y-%m-%dT%H:%M:%fZ','now','-16 days'), ?)",
+      "params": [
+        "pf-e-c4-16",
+        "pf-c4",
+        "{{me}}",
+        3.1,
+        "Last day, made it",
+        "everyone"
+      ]
+    },
+    {
+      "sql": "INSERT INTO app_family_fitness_challenge__ffc_entries (id, challenge_id, member_id, entry_date, amount, note, created_at, visibility) VALUES (?, ?, ?, date('now','-18 days'), ?, NULL, strftime('%Y-%m-%dT%H:%M:%fZ','now','-18 days'), ?)",
+      "params": [
+        "pf-e-c4-18",
+        "pf-c4",
+        "{{me}}",
+        2.4,
+        "everyone"
+      ]
+    },
+    {
+      "sql": "INSERT INTO app_family_fitness_challenge__ffc_entries (id, challenge_id, member_id, entry_date, amount, note, created_at, visibility) VALUES (?, ?, ?, date('now','-20 days'), ?, NULL, strftime('%Y-%m-%dT%H:%M:%fZ','now','-20 days'), ?)",
+      "params": [
+        "pf-e-c4-20",
+        "pf-c4",
+        "{{me}}",
+        4,
+        "everyone"
+      ]
+    },
+    {
+      "sql": "INSERT INTO app_family_fitness_challenge__ffc_entries (id, challenge_id, member_id, entry_date, amount, note, created_at, visibility) VALUES (?, ?, ?, date('now','-22 days'), ?, NULL, strftime('%Y-%m-%dT%H:%M:%fZ','now','-22 days'), ?)",
+      "params": [
+        "pf-e-c4-22",
+        "pf-c4",
+        "{{me}}",
+        2,
+        "everyone"
+      ]
+    },
+    {
+      "sql": "INSERT INTO app_family_fitness_challenge__ffc_entries (id, challenge_id, member_id, entry_date, amount, note, created_at, visibility) VALUES (?, ?, ?, date('now','-24 days'), ?, ?, strftime('%Y-%m-%dT%H:%M:%fZ','now','-24 days'), ?)",
+      "params": [
+        "pf-e-c4-24",
+        "pf-c4",
+        "{{me}}",
+        3.5,
+        "Walked to the farmers market",
+        "everyone"
+      ]
+    },
+    {
+      "sql": "INSERT INTO app_family_fitness_challenge__ffc_entries (id, challenge_id, member_id, entry_date, amount, note, created_at, visibility) VALUES (?, ?, ?, date('now','-27 days'), ?, NULL, strftime('%Y-%m-%dT%H:%M:%fZ','now','-27 days'), ?)",
+      "params": [
+        "pf-e-c4-27",
+        "pf-c4",
+        "{{me}}",
+        2.8,
+        "everyone"
+      ]
+    },
+    {
+      "sql": "INSERT INTO app_family_fitness_challenge__ffc_entries (id, challenge_id, member_id, entry_date, amount, note, created_at, visibility) VALUES (?, ?, ?, date('now','-29 days'), ?, NULL, strftime('%Y-%m-%dT%H:%M:%fZ','now','-29 days'), ?)",
+      "params": [
+        "pf-e-c4-29",
+        "pf-c4",
+        "{{me}}",
+        1.5,
+        "everyone"
+      ]
+    },
+    {
+      "sql": "INSERT INTO app_family_fitness_challenge__ffc_entries (id, challenge_id, member_id, entry_date, amount, note, created_at, visibility) VALUES (?, ?, ?, date('now','-31 days'), ?, NULL, strftime('%Y-%m-%dT%H:%M:%fZ','now','-31 days'), ?)",
+      "params": [
+        "pf-e-c4-31",
+        "pf-c4",
+        "{{me}}",
+        3,
+        "everyone"
+      ]
+    },
+    {
+      "sql": "INSERT INTO app_family_fitness_challenge__ffc_entries (id, challenge_id, member_id, entry_date, amount, note, created_at, visibility) VALUES (?, ?, ?, date('now','-34 days'), ?, NULL, strftime('%Y-%m-%dT%H:%M:%fZ','now','-34 days'), ?)",
+      "params": [
+        "pf-e-c4-34",
+        "pf-c4",
+        "{{me}}",
+        2.2,
+        "everyone"
+      ]
+    },
+    {
+      "sql": "INSERT INTO app_family_fitness_challenge__ffc_entries (id, challenge_id, member_id, entry_date, amount, note, created_at, visibility) VALUES (?, ?, ?, date('now','-36 days'), ?, ?, strftime('%Y-%m-%dT%H:%M:%fZ','now','-36 days'), ?)",
+      "params": [
+        "pf-e-c4-36",
+        "pf-c4",
+        "{{me}}",
+        4.6,
+        "Trail loop",
+        "everyone"
+      ]
+    },
+    {
+      "sql": "INSERT INTO app_family_fitness_challenge__ffc_entries (id, challenge_id, member_id, entry_date, amount, note, created_at, visibility) VALUES (?, ?, ?, date('now','-38 days'), ?, NULL, strftime('%Y-%m-%dT%H:%M:%fZ','now','-38 days'), ?)",
+      "params": [
+        "pf-e-c4-38",
+        "pf-c4",
+        "{{me}}",
+        2,
+        "everyone"
+      ]
+    },
+    {
+      "sql": "INSERT INTO app_family_fitness_challenge__ffc_entries (id, challenge_id, member_id, entry_date, amount, note, created_at, visibility) VALUES (?, ?, ?, date('now','-40 days'), ?, NULL, strftime('%Y-%m-%dT%H:%M:%fZ','now','-40 days'), ?)",
+      "params": [
+        "pf-e-c4-40",
+        "pf-c4",
+        "{{me}}",
+        3.3,
+        "everyone"
+      ]
+    },
+    {
+      "sql": "INSERT INTO app_family_fitness_challenge__ffc_entries (id, challenge_id, member_id, entry_date, amount, note, created_at, visibility) VALUES (?, ?, ?, date('now','-43 days'), ?, NULL, strftime('%Y-%m-%dT%H:%M:%fZ','now','-43 days'), ?)",
+      "params": [
+        "pf-e-c4-43",
+        "pf-c4",
+        "{{me}}",
+        1.8,
+        "everyone"
+      ]
+    }
+  ]
+}
