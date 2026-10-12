@@ -189,6 +189,8 @@
     .empty-state { text-align: center; padding: 40px 20px; color: var(--hub-text-muted, #6b7280); }
     .empty-state .empty-icon { margin-bottom: 10px; }
     .empty-state p { font-size: 0.9rem; }
+    .load-error { margin: 0 0 12px; padding: 10px 14px; border-radius: 10px; background: var(--hub-tint-danger, #fee2e2); color: var(--hub-tint-danger-fg, #b91c1c); font-size: 0.9rem; display: flex; gap: 10px; align-items: center; justify-content: space-between; }
+    .load-error-retry { background: none; border: 1px solid currentColor; border-radius: 8px; padding: 5px 10px; font: inherit; font-weight: 600; color: inherit; cursor: pointer; flex-shrink: 0; }
 
     .toast {
       position: fixed; bottom: 24px; left: 50%; transform: translateX(-50%);
@@ -387,7 +389,9 @@ async function db(sql, params = []) {
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({ sql, params }),
   });
-  return res.json();
+  const json = await res.json().catch(() => null);
+  if (!res.ok || !json || typeof json !== "object" || json.error) throw new Error(json?.error || "Couldn’t reach the hub. Try again.");
+  return json;
 }
 
 // ── Init ───────────────────────────────────────────────────────────────────────
@@ -400,10 +404,11 @@ async function loadMembers() {
       { id: "demo-4", name: "Taylor", role: "child" },
     ];
   } else {
-    try {
-      const res = await fetch(`${CONTEXT}?keys=family.members`);
-      members = ((await res.json())["family.members"]) ?? [];
-    } catch { members = []; }
+    // A failed read is a failed load, never an empty household.
+    const res = await fetch(`${CONTEXT}?keys=family.members`);
+    const data = await res.json().catch(() => null);
+    if (!res.ok || !data || typeof data !== "object" || (Array.isArray(data.$errors) && data.$errors.includes("family.members"))) throw new Error("Couldn’t load members");
+    members = data["family.members"] ?? [];
   }
   memberMap = new Map(members.map(m => [m.id, m]));
 }
@@ -413,11 +418,25 @@ async function loadChallenges() {
   challenges = rows;
 }
 
-(async () => {
-  await Promise.all([loadMembers(), loadChallenges()]);
+async function firstLoad() {
+  const newBtn = document.getElementById("new-challenge-btn");
+  try {
+    await Promise.all([loadMembers(), loadChallenges()]);
+  } catch {
+    // Nothing was read, so "no challenges" would be a false answer: say so instead.
+    newBtn.style.display = "none";
+    document.getElementById("list-content").innerHTML =
+      `<div class="load-error" data-testid="load-error" role="alert"><span>Couldn’t load challenges.</span> <button type="button" class="load-error-retry" data-testid="load-retry">Try again</button></div>`;
+    return;
+  }
+  newBtn.style.display = "";
   renderList();
   handleDeepLink();
-})();
+}
+document.addEventListener("click", (e) => {
+  if (e.target.closest('[data-testid="load-retry"]')) firstLoad();
+});
+firstLoad();
 
 function handleDeepLink() {
   const params = new URLSearchParams(window.location.search);
@@ -463,11 +482,17 @@ window.openChallenge = async function(challengeId) {
   const challenge = challenges.find(c => c.id === challengeId);
   if (!challenge) return;
 
-  const [teamsRes, partsRes, entriesRes] = await Promise.all([
-    db(`SELECT * FROM app_family_fitness_challenge__ffc_teams WHERE challenge_id = ?`, [challengeId]),
-    db(`SELECT * FROM app_family_fitness_challenge__ffc_participants WHERE challenge_id = ?`, [challengeId]),
-    db(`SELECT * FROM app_family_fitness_challenge__ffc_entries WHERE challenge_id = ? ORDER BY entry_date DESC, created_at DESC`, [challengeId]),
-  ]);
+  let teamsRes, partsRes, entriesRes;
+  try {
+    [teamsRes, partsRes, entriesRes] = await Promise.all([
+      db(`SELECT * FROM app_family_fitness_challenge__ffc_teams WHERE challenge_id = ?`, [challengeId]),
+      db(`SELECT * FROM app_family_fitness_challenge__ffc_participants WHERE challenge_id = ?`, [challengeId]),
+      db(`SELECT * FROM app_family_fitness_challenge__ffc_entries WHERE challenge_id = ? ORDER BY entry_date DESC, created_at DESC`, [challengeId]),
+    ]);
+  } catch (e) {
+    toast(e.message || "Couldn’t reach the hub. Try again.");
+    return;
+  }
   detail = {
     challenge,
     teams: teamsRes.rows,
