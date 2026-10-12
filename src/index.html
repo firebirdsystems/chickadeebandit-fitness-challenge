@@ -490,7 +490,8 @@ window.openChallenge = async function(challengeId) {
       db(`SELECT * FROM app_family_fitness_challenge__ffc_entries WHERE challenge_id = ? ORDER BY entry_date DESC, created_at DESC`, [challengeId]),
     ]);
   } catch (e) {
-    toast(e.message || "Couldn’t reach the hub. Try again.");
+    console.error("[family-fitness-challenge] challenge could not be loaded", e);
+    toast("Couldn’t load the challenge.");
     return;
   }
   detail = {
@@ -1025,7 +1026,8 @@ window.submitNewChallenge = async function() {
   } catch (e) {
     btn.disabled = false;
     btn.textContent = "Create Challenge";
-    toast(`Error: ${e.message}`);
+    console.error("[family-fitness-challenge] challenge could not be created", e);
+    toast("Couldn’t create the challenge — try again.");
   }
 };
 </script>
