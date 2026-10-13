@@ -834,9 +834,14 @@ window.submitLogEntry = async function() {
           .sort((a, b) => (b.entry_date + b.created_at).localeCompare(a.entry_date + a.created_at));
       }
     }
-    if (current()) {
-      closeModal();
-      renderDetail();
+    // The entry is stored: a drawing error must not report it as failed.
+    try {
+      if (current()) {
+        closeModal();
+        renderDetail();
+      }
+    } catch (e) {
+      console.error("[family-fitness-challenge] entry saved, detail could not be drawn", e);
     }
     toast(existing ? "Entry updated" : "Activity logged!");
   } catch (e) {
@@ -1057,11 +1062,17 @@ window.submitNewChallenge = async function() {
     }
     await dbBatch(statements);
 
-    challenges = [{ id: challengeId, name, activity_label: activityLabel, unit_label: unitLabel, mode, start_date: start, end_date: end, created_by: ME?.name ?? "", created_at: now }, ...challenges];
+    challenges = [{ id: challengeId, name, activity_label: activityLabel, unit_label: unitLabel, mode, start_date: start, end_date: end, created_by: ME?.id ?? "", created_at: now }, ...challenges];
 
-    // Only this form: the user may have cancelled it and opened something else.
-    if (modalEl?.id === "modal-new-challenge") closeModal();
-    renderList();
+    // The challenge is stored: a drawing error must not report it as failed
+    // (a retry would create it twice).
+    try {
+      // Only this form: the user may have cancelled it and opened something else.
+      if (modalEl?.id === "modal-new-challenge") closeModal();
+      renderList();
+    } catch (e) {
+      console.error("[family-fitness-challenge] challenge created, list could not be drawn", e);
+    }
     toast("Challenge created!");
 
     // The activity-feed write that stood here posted

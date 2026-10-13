@@ -103,6 +103,49 @@
       ]
     },
     {
+      "name": "creating a team challenge writes the challenge, its teams and its participants as one batch",
+      "members": { "kid": "child", "parent": "adult" },
+      "steps": [
+        {
+          "action": "batch",
+          "as": "parent",
+          "statements": [
+            {
+              "sql": "INSERT INTO app_family_fitness_challenge__ffc_challenges (id, name, activity_label, unit_label, mode, start_date, end_date, created_by, created_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)",
+              "params": ["cb", "Steps June", "Walking", "steps", "team", "2026-06-01", "2026-06-30", "{{parent}}", "2026-05-20T00:00:00Z"]
+            },
+            {
+              "sql": "INSERT INTO app_family_fitness_challenge__ffc_teams (id, challenge_id, name, color) VALUES (?, ?, ?, ?), (?, ?, ?, ?)",
+              "params": ["tb1", "cb", "Team A", "#0284c7", "tb2", "cb", "Team B", "#db2777"]
+            },
+            {
+              "sql": "INSERT INTO app_family_fitness_challenge__ffc_participants (id, challenge_id, member_id, team_id, joined_at) VALUES (?, ?, ?, ?, ?), (?, ?, ?, ?, ?)",
+              "params": ["pb1", "cb", "{{parent}}", "tb1", "2026-05-20T00:00:00Z", "pb2", "cb", "{{kid}}", "tb2", "2026-05-20T00:00:00Z"]
+            }
+          ],
+          "expect": { "status": 200, "changed": [1, 2, 2] }
+        },
+        {
+          "action": "db",
+          "as": "kid",
+          "sql": "SELECT id, mode FROM app_family_fitness_challenge__ffc_challenges WHERE id = 'cb'",
+          "expect": { "status": 200, "rowCount": 1, "rowsContain": [{ "id": "cb", "mode": "team" }] }
+        },
+        {
+          "action": "db",
+          "as": "kid",
+          "sql": "SELECT id, name FROM app_family_fitness_challenge__ffc_teams WHERE challenge_id = 'cb'",
+          "expect": { "status": 200, "rowCount": 2, "rowsContain": [{ "id": "tb1", "name": "Team A" }, { "id": "tb2", "name": "Team B" }] }
+        },
+        {
+          "action": "db",
+          "as": "kid",
+          "sql": "SELECT id, member_id, team_id FROM app_family_fitness_challenge__ffc_participants WHERE challenge_id = 'cb'",
+          "expect": { "status": 200, "rowCount": 2, "rowsContain": [{ "id": "pb1", "team_id": "tb1" }, { "id": "pb2", "member_id": "scn-kid", "team_id": "tb2" }] }
+        }
+      ]
+    },
+    {
       "name": "a child logs their own daily entry but cannot alter an adult's entry",
       "members": { "kid": "child", "parent": "adult" },
       "steps": [
