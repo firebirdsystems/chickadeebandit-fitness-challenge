@@ -394,6 +394,27 @@ async function db(sql, params = []) {
   return json;
 }
 
+// Several statements in ONE request and one atomic transaction: they land whole
+// or not at all, so a refused create leaves nothing behind for a retry to
+// duplicate.
+async function dbBatch(statements) {
+  if (!DB || !statements.length) return [];
+  const res = await fetch(DB, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ statements }),
+  });
+  const json = await res.json().catch(() => null);
+  if (!res.ok || !json || typeof json !== "object" || json.error) throw new Error(json?.error || "Couldn’t reach the hub. Try again.");
+  return json.results ?? [];
+}
+
+// A batch may carry only one INSERT into ffc_participants (the hub counts its
+// one-row-per-member cap per statement), so every participant goes in a single
+// multi-row INSERT. A statement takes at most 100 bound parameters and a
+// participant row binds 5.
+const MAX_PARTICIPANTS = 20;
+
 // ── Init ───────────────────────────────────────────────────────────────────────
 async function loadMembers() {
   if (!CONTEXT) {
@@ -750,7 +771,7 @@ function formatAmount(n) {
 
 // ── Log Activity ───────────────────────────────────────────────────────────────
 window.openLogEntry = function() {
-  if (!ME || !detail) return;
+  if (!ME || !detail || savingEntry) return; // a save in flight still owns the form
   document.getElementById("le-date").value = hubToday();
   document.getElementById("le-date").max = hubToday();
   document.getElementById("le-amount").value = "";
@@ -760,7 +781,9 @@ window.openLogEntry = function() {
   setTimeout(() => document.getElementById("le-amount").focus(), 50);
 };
 
-window.submitLogEntry = function() {
+let savingEntry = false;
+window.submitLogEntry = async function() {
+  if (savingEntry || !detail) return;
   const date = document.getElementById("le-date").value;
   const amountStr = document.getElementById("le-amount").value;
   const note = document.getElementById("le-note").value.trim();
@@ -772,37 +795,59 @@ window.submitLogEntry = function() {
   const { challenge } = detail;
   const existing = detail.entries.find(e => e.member_id === ME.id && e.entry_date === date);
   const now = new Date().toISOString();
+  const btn = document.getElementById("le-submit");
+  // The detail on screen when the hub answers: the user may have left this
+  // challenge, or reopened it, while the write was in flight.
+  const current = () => (detail?.challenge.id === challenge.id ? detail : null);
+  const reread = async () => {
+    const { rows } = await db(`SELECT * FROM app_family_fitness_challenge__ffc_entries WHERE challenge_id = ? ORDER BY entry_date DESC, created_at DESC`, [challenge.id]);
+    const cur = current();
+    if (cur) { cur.entries = rows; renderDetail(); }
+  };
 
-  if (existing) {
-    const oldAmount = existing.amount;
-    const oldNote = existing.note;
-    existing.amount = amount;
-    existing.note = note || null;
-    closeModal();
-    renderDetail();
-    toast("Entry updated");
-    db(`UPDATE app_family_fitness_challenge__ffc_entries SET amount = ?, note = ? WHERE id = ?`,
-      [amount, note || null, existing.id]).catch(() => {
-      existing.amount = oldAmount;
-      existing.note = oldNote;
+  // The write is awaited before the form closes: a refused save leaves the form
+  // open as typed, and nothing is drawn or announced until the hub has answered.
+  savingEntry = true;
+  btn.disabled = true;
+  try {
+    if (existing) {
+      const res = await db(`UPDATE app_family_fitness_challenge__ffc_entries SET amount = ?, note = ? WHERE id = ?`,
+        [amount, note || null, existing.id]);
+      if (res.changed === 0) {
+        // Nothing was updated: the stored entry is not the one on screen. Re-read
+        // so the screen shows what is stored; the form stays as typed.
+        await reread();
+        toast("Couldn’t save the entry — try again.");
+        return;
+      }
+      const row = current()?.entries.find(e => e.id === existing.id);
+      if (row) { row.amount = amount; row.note = note || null; }
+    } else {
+      const id = crypto.randomUUID();
+      await db(`INSERT INTO app_family_fitness_challenge__ffc_entries (id, challenge_id, member_id, entry_date, amount, note, created_at)
+          VALUES (?, ?, ?, ?, ?, ?, ?)`,
+        [id, challenge.id, ME.id, date, amount, note || null, now]);
+      const cur = current();
+      if (cur && !cur.entries.some(e => e.id === id)) {
+        const entry = { id, challenge_id: challenge.id, member_id: ME.id, entry_date: date, amount, note: note || null, created_at: now };
+        cur.entries = [entry, ...cur.entries]
+          .sort((a, b) => (b.entry_date + b.created_at).localeCompare(a.entry_date + a.created_at));
+      }
+    }
+    if (current()) {
+      closeModal();
       renderDetail();
-      toast("Failed to save — entry reverted");
-    });
-  } else {
-    const id = crypto.randomUUID();
-    const entry = { id, challenge_id: challenge.id, member_id: ME.id, entry_date: date, amount, note: note || null, created_at: now };
-    detail.entries = [entry, ...detail.entries]
-      .sort((a, b) => (b.entry_date + b.created_at).localeCompare(a.entry_date + a.created_at));
-    closeModal();
-    renderDetail();
-    toast("Activity logged!");
-    db(`INSERT INTO app_family_fitness_challenge__ffc_entries (id, challenge_id, member_id, entry_date, amount, note, created_at)
-        VALUES (?, ?, ?, ?, ?, ?, ?)`,
-      [id, challenge.id, ME.id, date, amount, note || null, now]).catch(() => {
-      detail.entries = detail.entries.filter(e => e.id !== id);
-      renderDetail();
-      toast("Failed to save — entry removed");
-    });
+    }
+    toast(existing ? "Entry updated" : "Activity logged!");
+  } catch (e) {
+    console.error("[family-fitness-challenge] entry could not be saved", e);
+    toast("Couldn’t save the entry — try again.");
+    // The hub also refuses an entry it already holds for that day (logged from
+    // another device). Re-read, so saving again updates that entry.
+    await reread().catch(() => {});
+  } finally {
+    savingEntry = false;
+    btn.disabled = false;
   }
 
   // No activity-feed write. /api/activity accepts only the hub's own closed
@@ -819,6 +864,7 @@ window.submitLogEntry = function() {
 
 // ── New Challenge ──────────────────────────────────────────────────────────────
 window.openNewChallenge = function() {
+  if (document.getElementById("nc-submit").disabled) return; // a create in flight still owns the form
   newChallenge = { mode: "individual", presetIdx: null, participantIds: members.map(m => m.id), teams: [] };
   document.getElementById("nc-name").value = "";
   document.getElementById("nc-activity-label").value = "";
@@ -960,51 +1006,61 @@ window.submitNewChallenge = async function() {
     if (teamsWithMembers.length < 2) { toast("Add at least two teams with members"); return; }
   }
 
+  const challengeId = crypto.randomUUID();
+  const now = new Date().toISOString();
+  const mode = newChallenge.mode;
+
+  const teamIdByTempId = new Map();
+  const validTeams = mode === "team"
+    ? newChallenge.teams.filter(t => t.memberIds.length && t.name.trim())
+    : [];
+  for (const team of validTeams) {
+    teamIdByTempId.set(team.tempId, crypto.randomUUID());
+  }
+
+  const partRows = [];
+  for (const memberId of newChallenge.participantIds) {
+    let teamId = null;
+    if (mode === "team") {
+      const team = newChallenge.teams.find(t => t.memberIds.includes(memberId) && teamIdByTempId.has(t.tempId));
+      teamId = team ? teamIdByTempId.get(team.tempId) : null;
+      if (!teamId) continue; // unassigned participants are skipped in team mode
+    }
+    partRows.push([crypto.randomUUID(), challengeId, memberId, teamId, now]);
+  }
+  if (partRows.length > MAX_PARTICIPANTS) { toast(`A challenge can have up to ${MAX_PARTICIPANTS} participants`); return; }
+
   const btn = document.getElementById("nc-submit");
   btn.disabled = true;
   btn.textContent = "Creating…";
 
   try {
-    const challengeId = crypto.randomUUID();
-    const now = new Date().toISOString();
-
-    await db(
-      `INSERT INTO app_family_fitness_challenge__ffc_challenges (id, name, activity_label, unit_label, mode, start_date, end_date, created_by, created_at)
+    // One batch: the challenge, its teams and its participants land together or
+    // not at all.
+    const statements = [{
+      sql: `INSERT INTO app_family_fitness_challenge__ffc_challenges (id, name, activity_label, unit_label, mode, start_date, end_date, created_by, created_at)
        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`,
-      [challengeId, name, activityLabel, unitLabel, newChallenge.mode, start, end, ME?.id ?? "", now]
-    );
-
-    const teamIdByTempId = new Map();
-    if (newChallenge.mode === "team") {
-      const validTeams = newChallenge.teams.filter(t => t.memberIds.length && t.name.trim());
-      for (const team of validTeams) {
-        teamIdByTempId.set(team.tempId, crypto.randomUUID());
-      }
-      await Promise.all(validTeams.map(team =>
-        db(`INSERT INTO app_family_fitness_challenge__ffc_teams (id, challenge_id, name, color) VALUES (?, ?, ?, ?)`,
-          [teamIdByTempId.get(team.tempId), challengeId, team.name.trim(), team.color])
-      ));
+      params: [challengeId, name, activityLabel, unitLabel, mode, start, end, ME?.id ?? "", now],
+    }];
+    if (validTeams.length) {
+      statements.push({
+        sql: `INSERT INTO app_family_fitness_challenge__ffc_teams (id, challenge_id, name, color) VALUES ${validTeams.map(() => "(?, ?, ?, ?)").join(", ")}`,
+        params: validTeams.flatMap(team => [teamIdByTempId.get(team.tempId), challengeId, team.name.trim(), team.color]),
+      });
     }
-
-    const partInserts = [];
-    for (const memberId of newChallenge.participantIds) {
-      let teamId = null;
-      if (newChallenge.mode === "team") {
-        const team = newChallenge.teams.find(t => t.memberIds.includes(memberId) && teamIdByTempId.has(t.tempId));
-        teamId = team ? teamIdByTempId.get(team.tempId) : null;
-        if (!teamId) continue; // unassigned participants are skipped in team mode
-      }
-      partInserts.push(db(
-        `INSERT INTO app_family_fitness_challenge__ffc_participants (id, challenge_id, member_id, team_id, joined_at)
-         VALUES (?, ?, ?, ?, ?)`,
-        [crypto.randomUUID(), challengeId, memberId, teamId, now]
-      ));
+    if (partRows.length) {
+      statements.push({
+        sql: `INSERT INTO app_family_fitness_challenge__ffc_participants (id, challenge_id, member_id, team_id, joined_at)
+         VALUES ${partRows.map(() => "(?, ?, ?, ?, ?)").join(", ")}`,
+        params: partRows.flat(),
+      });
     }
-    await Promise.all(partInserts);
+    await dbBatch(statements);
 
-    challenges = [{ id: challengeId, name, activity_label: activityLabel, unit_label: unitLabel, mode: newChallenge.mode, start_date: start, end_date: end, created_by: ME?.name ?? "", created_at: now }, ...challenges];
+    challenges = [{ id: challengeId, name, activity_label: activityLabel, unit_label: unitLabel, mode, start_date: start, end_date: end, created_by: ME?.name ?? "", created_at: now }, ...challenges];
 
-    closeModal();
+    // Only this form: the user may have cancelled it and opened something else.
+    if (modalEl?.id === "modal-new-challenge") closeModal();
     renderList();
     toast("Challenge created!");
 
@@ -1024,10 +1080,11 @@ window.submitNewChallenge = async function() {
       }),
     ]).catch(() => {});
   } catch (e) {
-    btn.disabled = false;
-    btn.textContent = "Create Challenge";
     console.error("[family-fitness-challenge] challenge could not be created", e);
     toast("Couldn’t create the challenge — try again.");
+  } finally {
+    btn.disabled = false;
+    btn.textContent = "Create Challenge";
   }
 };
 </script>
