@@ -10,6 +10,7 @@ import {
   currentStreak,
   computeBadges,
   BADGES, searchableFields,
+  challengeCreateStatements, MAX_PARTICIPANTS,
 } from "../src/logic.js";
 
 // ── date helpers ────────────────────────────────────────────────────────────────
@@ -257,5 +258,68 @@ describe("searchableFields", () => {
   it("matches on the activity label — what is actually being counted", () => {
     const fields = searchableFields({ name: "March push", activity_label: "steps", unit_label: "steps", note: "" });
     expect(fields).toContain("steps");
+  });
+});
+
+describe("challengeCreateStatements", () => {
+  const ID = "0f8fad5b-d9cb-469f-a165-70867728950e";
+  const STAMP = "2026-03-02T10:11:12.345Z";
+  const challenge = (over = {}) => ({
+    id: ID, name: "Steps", activity_label: "Steps", unit_label: "steps", mode: "team",
+    start_date: "2026-03-02", end_date: "2026-03-09", created_by: "m0", created_at: STAMP, ...over,
+  });
+  const partsOf = (n, teamId = null) => Array.from({ length: n }, (_, i) => ({ id: `p${i}`, member_id: `m${i}`, team_id: teamId }));
+  const teamsOf = n => Array.from({ length: n }, (_, i) => ({ id: `t${i}`, name: `Team ${i}`, color: "#000" }));
+  const binds = s => s.sql.split("?").length - 1;
+
+  it("puts every participant in ONE INSERT within 100 bound values, at the cap", () => {
+    const statements = challengeCreateStatements(challenge(), teamsOf(MAX_PARTICIPANTS), partsOf(MAX_PARTICIPANTS, "t0"));
+    expect(MAX_PARTICIPANTS).toBe(33);
+    const partInserts = statements.filter(s => /ffc_participants/.test(s.sql));
+    expect(partInserts).toHaveLength(1);
+    expect(statements.length).toBeLessThanOrEqual(25);
+    for (const s of statements) {
+      expect(binds(s)).toBe(s.params.length);
+      expect(s.params.length).toBeLessThanOrEqual(100);
+    }
+    expect(partInserts[0].params).toHaveLength(MAX_PARTICIPANTS * 3);
+  });
+
+  it("writes the challenge id and stamp as literals on each participant row and binds the rest", () => {
+    const statements = challengeCreateStatements(challenge({ mode: "individual" }), [], partsOf(2));
+    expect(statements).toHaveLength(2);
+    const part = statements[1];
+    expect(part.sql).toContain(`(?, '${ID}', ?, ?, '${STAMP}'), (?, '${ID}', ?, ?, '${STAMP}')`);
+    expect(part.params).toEqual(["p0", "m0", null, "p1", "m1", null]);
+    expect(statements[0].params[0]).toBe(ID);
+    expect(statements[0].params.at(-1)).toBe(STAMP);
+  });
+
+  it("binds teams under the challenge id, 25 to an INSERT", () => {
+    const statements = challengeCreateStatements(challenge(), teamsOf(26), partsOf(26, "t0"));
+    const teamInserts = statements.filter(s => /ffc_teams/.test(s.sql));
+    expect(teamInserts.map(s => s.params.length)).toEqual([100, 4]);
+    expect(teamInserts[1].params).toEqual(["t25", ID, "Team 25", "#000"]);
+  });
+
+  it("accepts a stamp without milliseconds", () => {
+    expect(challengeCreateStatements(challenge({ created_at: "2026-03-02T10:11:12Z" }), [], partsOf(1))).not.toBeNull();
+  });
+
+  it("refuses more participants than one INSERT can bind", () => {
+    expect(challengeCreateStatements(challenge(), [], partsOf(MAX_PARTICIPANTS + 1))).toBeNull();
+  });
+
+  it.each([
+    ["an id with a quote", { id: "0f8fad5b-d9cb-469f-a165-70867728950e'" }],
+    ["an injected id", { id: "x'); DROP TABLE t; --" }],
+    ["an empty id", { id: "" }],
+    ["a non-UUID id", { id: "challenge-1" }],
+    ["a stamp with an offset", { created_at: "2026-03-02T10:11:12+01:00" }],
+    ["a stamp with a quote", { created_at: "2026-03-02T10:11:12Z'" }],
+    ["a date-only stamp", { created_at: "2026-03-02" }],
+    ["a missing stamp", { created_at: undefined }],
+  ])("refuses to build with %s", (_label, over) => {
+    expect(challengeCreateStatements(challenge(over), [], partsOf(1))).toBeNull();
   });
 });

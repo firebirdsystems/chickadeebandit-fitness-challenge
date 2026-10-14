@@ -344,6 +344,7 @@ import { esc, memberColor, initial, searchMatch, hubToday, glyph, chickadee } fr
 import {
   UNIT_PRESETS, BADGES, daysBetween, challengeStatus, rankLabel,
   computeStandings, currentStreak, computeBadges, searchableFields,
+  challengeCreateStatements, MAX_PARTICIPANTS,
 } from "./logic.js";
 
 // The page heading is static markup; its mark comes from the SDK.
@@ -409,11 +410,8 @@ async function dbBatch(statements) {
   return json.results ?? [];
 }
 
-// A batch may carry only one INSERT into ffc_participants (the hub counts its
-// one-row-per-member cap per statement), so every participant goes in a single
-// multi-row INSERT. A statement takes at most 100 bound parameters and a
-// participant row binds 5.
-const MAX_PARTICIPANTS = 20;
+// A new challenge's participants all go in ONE multi-row INSERT, so their count
+// is capped at MAX_PARTICIPANTS (logic.js challengeCreateStatements).
 
 // ── Init ───────────────────────────────────────────────────────────────────────
 async function loadMembers() {
@@ -1031,9 +1029,15 @@ window.submitNewChallenge = async function() {
       teamId = team ? teamIdByTempId.get(team.tempId) : null;
       if (!teamId) continue; // unassigned participants are skipped in team mode
     }
-    partRows.push([crypto.randomUUID(), challengeId, memberId, teamId, now]);
+    partRows.push({ id: crypto.randomUUID(), member_id: memberId, team_id: teamId });
   }
   if (partRows.length > MAX_PARTICIPANTS) { toast(`A challenge can have up to ${MAX_PARTICIPANTS} participants`); return; }
+  const statements = challengeCreateStatements(
+    { id: challengeId, name, activity_label: activityLabel, unit_label: unitLabel, mode, start_date: start, end_date: end, created_by: ME?.id ?? "", created_at: now },
+    validTeams.map(team => ({ id: teamIdByTempId.get(team.tempId), name: team.name.trim(), color: team.color })),
+    partRows,
+  );
+  if (!statements) { toast("Couldn’t create the challenge — try again."); return; }
 
   const btn = document.getElementById("nc-submit");
   btn.disabled = true;
@@ -1042,24 +1046,6 @@ window.submitNewChallenge = async function() {
   try {
     // One batch: the challenge, its teams and its participants land together or
     // not at all.
-    const statements = [{
-      sql: `INSERT INTO app_family_fitness_challenge__ffc_challenges (id, name, activity_label, unit_label, mode, start_date, end_date, created_by, created_at)
-       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`,
-      params: [challengeId, name, activityLabel, unitLabel, mode, start, end, ME?.id ?? "", now],
-    }];
-    if (validTeams.length) {
-      statements.push({
-        sql: `INSERT INTO app_family_fitness_challenge__ffc_teams (id, challenge_id, name, color) VALUES ${validTeams.map(() => "(?, ?, ?, ?)").join(", ")}`,
-        params: validTeams.flatMap(team => [teamIdByTempId.get(team.tempId), challengeId, team.name.trim(), team.color]),
-      });
-    }
-    if (partRows.length) {
-      statements.push({
-        sql: `INSERT INTO app_family_fitness_challenge__ffc_participants (id, challenge_id, member_id, team_id, joined_at)
-         VALUES ${partRows.map(() => "(?, ?, ?, ?, ?)").join(", ")}`,
-        params: partRows.flat(),
-      });
-    }
     await dbBatch(statements);
 
     challenges = [{ id: challengeId, name, activity_label: activityLabel, unit_label: unitLabel, mode, start_date: start, end_date: end, created_by: ME?.id ?? "", created_at: now }, ...challenges];

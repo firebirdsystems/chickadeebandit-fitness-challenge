@@ -170,3 +170,54 @@ export function computeBadges(member, challenge, entries, standings, todayISO = 
 export function searchableFields(item) {
   return [item.name, item.activity_label, item.unit_label, item.note];
 }
+
+// ── Creating a challenge ──────────────────────────────────────────────────────
+// The challenge, its teams and its participants go to the hub as ONE batch, so
+// a failure part-way leaves nothing behind. A batch may carry only one INSERT
+// into ffc_participants (the hub checks its one-row-per-member cap against
+// committed rows per statement), so every participant shares a single INSERT,
+// and a statement binds at most 100 values. The challenge id and the timestamp
+// are the same on every participant row, so they are written into the SQL as
+// literals and each row binds 3 (id, member_id, team_id): 33 rows. They are
+// inlined only after matching these strict patterns (a UUID the page minted, an
+// ISO timestamp the page built), so no other text can reach the SQL. Both
+// columns are plaintext (the manifest turns db_encryption off). Team rows bind
+// 4, so they go 25 to an INSERT.
+export const MAX_PARTICIPANTS = 33;
+const TEAM_ROWS_PER_INSERT = 25;
+const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+const ISO_STAMP_RE = /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(\.\d{3})?Z$/;
+
+/**
+ * The statements that create `challenge` with `teams` ([{ id, name, color }])
+ * and `participants` ([{ id, member_id, team_id }]), or null when there are too
+ * many participants or the challenge id / created_at is not of the strict shape
+ * that may be written into the SQL.
+ */
+export function challengeCreateStatements(challenge, teams, participants) {
+  const id = String(challenge?.id ?? "");
+  const stamp = String(challenge?.created_at ?? "");
+  if (!UUID_RE.test(id) || !ISO_STAMP_RE.test(stamp)) return null;
+  if (participants.length > MAX_PARTICIPANTS) return null;
+  const statements = [{
+    sql: `INSERT INTO app_family_fitness_challenge__ffc_challenges (id, name, activity_label, unit_label, mode, start_date, end_date, created_by, created_at)
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+    params: [id, challenge.name, challenge.activity_label, challenge.unit_label, challenge.mode,
+      challenge.start_date, challenge.end_date, challenge.created_by, stamp],
+  }];
+  for (let i = 0; i < teams.length; i += TEAM_ROWS_PER_INSERT) {
+    const rows = teams.slice(i, i + TEAM_ROWS_PER_INSERT);
+    statements.push({
+      sql: `INSERT INTO app_family_fitness_challenge__ffc_teams (id, challenge_id, name, color) VALUES ${rows.map(() => "(?, ?, ?, ?)").join(", ")}`,
+      params: rows.flatMap(t => [t.id, id, t.name, t.color]),
+    });
+  }
+  if (participants.length) {
+    statements.push({
+      sql: `INSERT INTO app_family_fitness_challenge__ffc_participants (id, challenge_id, member_id, team_id, joined_at)
+         VALUES ${participants.map(() => `(?, '${id}', ?, ?, '${stamp}')`).join(", ")}`,
+      params: participants.flatMap(p => [p.id, p.member_id, p.team_id ?? null]),
+    });
+  }
+  return statements;
+}
